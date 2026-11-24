@@ -40,6 +40,10 @@ RIASEC_ITEMS_FILE = os.getenv('RIASEC_ITEMS_FILE', str(ROOT / 'data' / 'riasec_i
 RIASEC_COURSES_FILE = os.getenv('RIASEC_COURSES_FILE', str(ROOT / 'data' / 'riasec_cursos.json'))
 # Peso do perfil RIASEC no modo híbrido (0 = só texto, 1 = só perfil). Calibrar com scripts/evaluate.py.
 RIASEC_WEIGHT = min(max(float(os.getenv('RIASEC_WEIGHT', '0.5')), 0.0), 1.0)
+# Abaixo desta similaridade de texto, nenhum curso do catálogo é considerado próximo do que o estudante descreveu.
+# Valor inicial observado com o modelo real (cursos pertinentes: 0,52 a 0,64; sem curso no catálogo: até 0,27);
+# deve ser recalibrado com os casos avaliados por especialistas.
+LOW_AFFINITY_THRESHOLD = float(os.getenv('LOW_AFFINITY_THRESHOLD', '0.30'))
 MAX_CONCURRENT_INFERENCES = max(1, int(os.getenv('MAX_CONCURRENT_INFERENCES', '2')))
 inference_slots = BoundedSemaphore(MAX_CONCURRENT_INFERENCES)
 courses = []
@@ -142,15 +146,17 @@ def init_management():
             db.execute('ALTER TABLE consultations ADD COLUMN student_id INTEGER')
         if 'method' not in cols:
             db.execute('ALTER TABLE consultations ADD COLUMN method TEXT')
+        if 'low_affinity' not in cols:
+            db.execute('ALTER TABLE consultations ADD COLUMN low_affinity INTEGER NOT NULL DEFAULT 0')
         if 'riasec_code' not in cols:
             db.execute('ALTER TABLE consultations ADD COLUMN riasec_code TEXT')
         db.execute('CREATE INDEX IF NOT EXISTS ix_consultations_student ON consultations(student_id)')
 
-def record_consultation(request, results, student_id, text, method='texto', riasec_code=None):
+def record_consultation(request, results, student_id, text, method='texto', riasec_code=None, low_affinity=False):
     # Histórico vinculado à conta autenticada. Não armazena IP nem identificador de dispositivo.
     top = results[0] if results else {}
     with management_connection() as db:
-        db.execute("INSERT INTO consultations(created_at,campus,nivel,interests,top_course,top_area,top_score,results_json,student_id,method,riasec_code) VALUES(?,?,?,?,?,?,?,?,?,?,?)", (datetime.now(timezone.utc).isoformat(), request.campus, request.nivel, text or '', top.get("nome"), top.get("area_principal"), top.get("score"), json.dumps(results[:10], ensure_ascii=False), student_id, method, riasec_code))
+        db.execute("INSERT INTO consultations(created_at,campus,nivel,interests,top_course,top_area,top_score,results_json,student_id,method,riasec_code,low_affinity) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", (datetime.now(timezone.utc).isoformat(), request.campus, request.nivel, text or '', top.get("nome"), top.get("area_principal"), top.get("score"), json.dumps(results[:10], ensure_ascii=False), student_id, method, riasec_code, int(bool(low_affinity))))
 
 class RecommendationRequest(BaseModel):
     # Opcional quando o estudante já respondeu ao inventário RIASEC.
@@ -254,14 +260,22 @@ def recommend(request: RecommendationRequest, student=Depends(require_student)):
                                riasec_user=profile['pontuacoes'] if profile else None,
                                riasec_courses=riasec_course_profiles() if profile else None,
                                riasec_weight=RIASEC_WEIGHT)
+        # Melhor similaridade de TEXTO entre as ofertas filtradas (sem normalização), para saber
+        # se algum curso realmente se parece com o que o estudante escreveu.
+        best_text = None
+        if query_vector is not None:
+            best = rank_courses(query_vector, courses, course_vectors, FIELD_WEIGHTS,
+                                request.campus, request.nivel, 1)
+            best_text = best[0]['score'] if best else None
     except Exception:
         logger.exception('Erro durante a recomendação')
         raise HTTPException(status_code=500, detail='Não foi possível calcular as recomendações.')
     finally:
         inference_slots.release()
     mode = results[0]['metodo'] if results else ('hibrido' if query and profile else 'riasec' if profile else 'texto')
+    low_affinity = best_text is not None and best_text < LOW_AFFINITY_THRESHOLD
     try:
-        record_consultation(request, results, student["id"], query, mode, profile['codigo'] if profile else None)
+        record_consultation(request, results, student["id"], query, mode, profile['codigo'] if profile else None, low_affinity)
     except Exception:
         logger.exception("Falha ao registrar consulta anônima")
     if metrics is not None:
@@ -276,6 +290,8 @@ def recommend(request: RecommendationRequest, student=Depends(require_student)):
             'modo': mode, 'metodo': descriptions[mode],
             'peso_riasec': RIASEC_WEIGHT if mode == 'hibrido' else None,
             'perfil_riasec': {'codigo': profile['codigo'], 'pontuacoes': profile['pontuacoes']} if profile else None,
+            'afinidade': {'baixa': low_affinity, 'limiar': LOW_AFFINITY_THRESHOLD,
+                          'melhor_similaridade_texto': round(best_text, 4) if best_text is not None else None},
             'observacao': 'O score serve só para ordenar os resultados; não representa probabilidade nem percentual de compatibilidade.',
             'pesos': FIELD_WEIGHTS, 'total_retornado': len(results), 'resultados': results}
 
@@ -438,7 +454,7 @@ def management_dashboard(period: int = 0, campus: str = 'all', nivel: str = 'all
         for result in json.loads(r['results_json']):
             name = result.get('nome')
             if name: course_counts[(name, result.get('campus') or '')] += 1
-    return {'total_consultas':len(rows), 'alunos_distintos':len({r['student_id'] for r in rows if r['student_id']}), 'campi':len({r['campus'] for r in rows if r['campus']}), 'cursos_sugeridos':len(course_counts), 'areas': [{'name':k or 'Não informado','count':v} for k,v in Counter(r['top_area'] for r in rows).most_common()], 'regioes':[{'name':k or 'Não informado','count':v} for k,v in Counter(r['campus'] for r in rows).most_common()], 'evolucao':[{'day':k,'count':v} for k,v in sorted(Counter(r['created_at'][:10] for r in rows).items())], 'cursos':[{'nome':k[0],'campus':k[1], 'count':v} for k,v in course_counts.most_common(30)], 'consultas':[{'id':r['id'],'aluno':r['student_name'] or 'Consulta anterior sem identificação','email':r['student_email'] or '', 'data':r['created_at'],'campus':r['campus'],'nivel':r['nivel'],'interesses':r['interests'],'curso':r['top_course'],'area':r['top_area'],'score':r['top_score'],'metodo':r.get('method') or 'texto','perfil':r.get('riasec_code'),'resultados':json.loads(r['results_json'])} for r in rows], 'total_ofertas':len(courses), 'catalogo_campi':sorted({c['campus'] for c in courses}), 'catalogo_niveis':sorted({c['nivel'] for c in courses}), 'riasec': riasec_distribution()}
+    return {'total_consultas':len(rows), 'alunos_distintos':len({r['student_id'] for r in rows if r['student_id']}), 'campi':len({r['campus'] for r in rows if r['campus']}), 'cursos_sugeridos':len(course_counts), 'sem_curso_proximo':sum(1 for r in rows if r.get('low_affinity')), 'areas': [{'name':k or 'Não informado','count':v} for k,v in Counter(r['top_area'] for r in rows).most_common()], 'regioes':[{'name':k or 'Não informado','count':v} for k,v in Counter(r['campus'] for r in rows).most_common()], 'evolucao':[{'day':k,'count':v} for k,v in sorted(Counter(r['created_at'][:10] for r in rows).items())], 'cursos':[{'nome':k[0],'campus':k[1], 'count':v} for k,v in course_counts.most_common(30)], 'consultas':[{'id':r['id'],'aluno':r['student_name'] or 'Consulta anterior sem identificação','email':r['student_email'] or '', 'data':r['created_at'],'campus':r['campus'],'nivel':r['nivel'],'interesses':r['interests'],'curso':r['top_course'],'area':r['top_area'],'score':r['top_score'],'metodo':r.get('method') or 'texto','perfil':r.get('riasec_code'),'sem_curso_proximo':bool(r.get('low_affinity')),'resultados':json.loads(r['results_json'])} for r in rows], 'total_ofertas':len(courses), 'catalogo_campi':sorted({c['campus'] for c in courses}), 'catalogo_niveis':sorted({c['nivel'] for c in courses}), 'riasec': riasec_distribution()}
 
 @app.get('/api/gestao/export', dependencies=[Depends(management_auth)])
 def management_export(period: int = 0, campus: str = 'all', nivel: str = 'all', area: str = 'all', search: str = ''):

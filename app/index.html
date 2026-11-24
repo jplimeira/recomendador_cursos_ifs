@@ -196,6 +196,20 @@ summary { cursor: pointer; color: var(--green); font-weight: 650; font-size: 14p
 .topbar { box-shadow: 0 1px 0 rgba(18, 63, 54, .04); }
 .topbar::before { content: ""; display: block; height: 3px; background: var(--green); }
 
+/* Nenhum curso parecido */
+.nofit { display: grid; grid-template-columns: 44px 1fr; gap: 14px; align-items: start; padding: 18px 20px; margin-bottom: 16px;
+  border-radius: var(--radius); background: #fff8e6; border: 1px solid #f0d58c; }
+.nofit-icon { width: 44px; height: 44px; border-radius: 50%; background: #fdecb8; display: grid; place-items: center; }
+.nofit-icon svg { width: 22px; height: 22px; stroke: #8a5a00; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.nofit h3 { margin: 2px 0 6px; font-size: 16px; }
+.nofit p { margin: 0 0 12px; color: #5c4710; max-width: 62ch; font-size: 14px; }
+.nofit .actions { gap: 12px; }
+.nofit .hint-line { font-size: 13px; color: #7a6220; }
+.closest-label { margin: 0 0 12px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.suggest-foot { margin-top: 16px; padding: 14px 16px; border: 1px dashed var(--line-strong); border-radius: var(--radius); font-size: 14px; color: var(--muted); background: var(--surface); }
+.suggest-foot a { font-weight: 650; }
+.tag-nofit { display: inline-block; margin-top: 4px; font-size: 11px; color: #6b4a00; background: var(--warn-tint); padding: 1px 7px; border-radius: 999px; }
+
 /* Sugestões */
 .sug-layout { display: grid; grid-template-columns: minmax(300px, 440px) 1fr; gap: 20px; align-items: start; }
 .sug-item { padding: 14px 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; }
@@ -211,7 +225,7 @@ td.reason { white-space: normal; min-width: 260px; max-width: 460px; }
 
 /* Gestão */
 .g-filters { display: grid; grid-template-columns: repeat(4, 1fr) auto; gap: 12px; align-items: end; margin-bottom: 16px; }
-.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
 .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
 .kpi span { font-size: 13px; color: var(--muted); }
 .kpi b { display: block; font-size: 26px; letter-spacing: -.02em; }
@@ -528,7 +542,7 @@ footer { max-width: 1240px; margin: auto; padding: 18px 20px 32px; color: var(--
 
 <script>
 const $ = id => document.getElementById(id);
-const state = { aluno: null, gestor: null, metadata: null, dashboard: null, role: 'aluno', mode: 'login', next: null, sub: 'visao', profile: null, lastProfileCode: '' };
+const state = { aluno: null, gestor: null, metadata: null, dashboard: null, role: 'aluno', mode: 'login', next: null, sub: 'visao', profile: null, lastProfileCode: '', lastSearchText: '', sugPrefill: '' };
 const nf = new Intl.NumberFormat('pt-BR');
 const sf = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -618,7 +632,7 @@ async function route() {
   if (r.view === 'historico') loadHistory();
   if (r.view === 'perfil') showProfileView();
   if (r.view === 'recomendar') renderRecProfile();
-  if (r.view === 'sugerir') loadMySuggestions();
+  if (r.view === 'sugerir') { loadMySuggestions(); applySuggestionPrefill(); }
   if (r.view === 'conta') renderAccount();
   if (r.view === 'gestao') {
     document.querySelectorAll('[data-sub]').forEach(s => s.hidden = s.dataset.sub !== r.sub);
@@ -734,6 +748,26 @@ function renderResult(c, i) {
   </article>`;
 }
 
+const suggestFoot = '<div class="suggest-foot">Não encontrou o curso que queria? <a href="#/sugerir" data-suggest-from-search>Sugira um curso ao IFS</a> e ajude a planejar as próximas ofertas.</div>';
+function noFitBanner(text) {
+  const filtered = $('campus').value !== 'Todos' || $('nivel').value !== 'Todos';
+  return `<div class="nofit" role="status">
+    <div class="nofit-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg></div>
+    <div>
+      <h3>Ainda não temos um curso parecido com o que você procura</h3>
+      <p>Comparamos o que você escreveu com as ofertas do IFS${filtered ? ' nos filtros escolhidos' : ''} e nenhuma ficou realmente próxima. Pode ser que esse curso ainda não exista no IFS, e a sua ideia ajuda a gestão a planejar novas ofertas.</p>
+      <div class="actions"><button class="btn primary" type="button" data-suggest-from-search>Sugerir esse curso ao IFS</button>
+        <span class="hint-line">${filtered ? 'Ou tente “Todos” em campus e nível.' : 'Leva menos de um minuto.'}</span></div>
+    </div></div>`;
+}
+$('results').addEventListener('click', e => {
+  const trigger = e.target.closest('[data-suggest-from-search]'); if (!trigger) return;
+  e.preventDefault();
+  const text = state.lastSearchText || '';
+  state.sugPrefill = text ? `Procurei cursos sobre: "${text}" e não encontrei nenhum parecido no IFS.` : '';
+  location.hash = '#/sugerir';
+});
+
 $('recForm').onsubmit = async e => {
   e.preventDefault();
   const interesses = $('interesses').value.trim();
@@ -748,8 +782,11 @@ $('recForm').onsubmit = async e => {
     state.lastProfileCode = data.perfil_riasec?.codigo || '';
     const how = { texto: 'da mais para a menos parecida com o que você escreveu', riasec: 'da mais para a menos alinhada ao seu perfil de interesses', hibrido: 'combinando o que você escreveu com o seu perfil de interesses' }[data.modo];
     $('results').innerHTML = data.resultados.length
-      ? `<p class="muted small" style="margin:0 0 12px">${nf.format(data.total_retornado)} oferta(s), ${how}.</p>` + data.resultados.map(renderResult).join('')
-      : '<div class="empty"><b>Nenhuma oferta com esses filtros</b>Tente “Todos” em campus ou nível.</div>';
+      ? (data.afinidade?.baixa ? noFitBanner(interesses) + '<p class="closest-label">Mesmo assim, estas são as opções mais próximas no catálogo atual:</p>'
+                               : `<p class="muted small" style="margin:0 0 12px">${nf.format(data.total_retornado)} oferta(s), ${how}.</p>`)
+        + data.resultados.map(renderResult).join('') + suggestFoot
+      : '<div class="empty"><b>Nenhuma oferta com esses filtros</b>Tente “Todos” em campus ou nível.</div>' + suggestFoot;
+    state.lastSearchText = interesses;
   } catch (err) {
     if (err.status === 401) { state.aluno = null; state.next = 'recomendar'; location.hash = '#/entrar?perfil=aluno&aviso=1'; return; }
     $('results').innerHTML = emptyResults; setMsg('recMsg', err.message);
@@ -951,7 +988,7 @@ async function loadDashboard(silent = false) {
     // "Todos" significa que o estudante não filtrou por campus: não conta como campus escolhido.
     const regioes = d.regioes.map(r => r.name === 'Todos' || r.name === 'Não informado' ? { ...r, name: 'Sem preferência de campus' } : r);
     const campiEscolhidos = d.regioes.filter(r => r.name !== 'Todos' && r.name !== 'Não informado').length;
-    $('gKpis').innerHTML = [['Consultas', d.total_consultas], ['Estudantes distintos', d.alunos_distintos], ['Campi escolhidos', campiEscolhidos], ['Cursos sugeridos', d.cursos_sugeridos]]
+    $('gKpis').innerHTML = [['Consultas', d.total_consultas], ['Estudantes distintos', d.alunos_distintos], ['Campi escolhidos', campiEscolhidos], ['Cursos sugeridos', d.cursos_sugeridos], ['Buscas sem curso próximo', d.sem_curso_proximo]]
       .map(([l, v]) => `<div class="kpi"><span>${l}</span><b class="num">${nf.format(v)}</b></div>`).join('');
     $('gTimeline').innerHTML = timeline(d.evolucao);
     $('gAreas').innerHTML = bars(d.areas);
@@ -963,7 +1000,7 @@ async function loadDashboard(silent = false) {
     $('gConsultas').innerHTML = d.consultas.length ? d.consultas.map((c, i) => `<tr>
         <td><b>${esc(c.aluno)}</b><br><span class="muted">${esc(c.email)}</span></td><td class="num">${fmtDate(c.data)}</td>
         <td>${esc(c.campus || 'Todos')}</td><td>${esc(c.nivel || 'Todos')}</td><td><div class="clip" title="${esc(c.interesses)}">${esc(c.interesses)}</div></td>
-        <td>${esc(c.curso || '—')}</td><td><button class="btn small" data-consulta="${i}" aria-expanded="false">Ver</button></td></tr>`).join('')
+        <td>${esc(c.curso || '—')}${c.sem_curso_proximo ? '<br><span class="tag-nofit">Sem curso próximo</span>' : ''}</td><td><button class="btn small" data-consulta="${i}" aria-expanded="false">Ver</button></td></tr>`).join('')
       : '<tr><td colspan="7" class="muted">Nenhuma consulta registrada nesses filtros.</td></tr>';
     $('gUpdated').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   } catch (err) {
@@ -1046,6 +1083,13 @@ $('sugList').addEventListener('click', async e => {
   try { await api('/api/alunos/sugestoes/' + b.dataset.delSug, { method: 'DELETE' }); loadMySuggestions(); }
   catch (err) { setMsg('sugMsg', err.message); }
 });
+function applySuggestionPrefill() {
+  if (!state.sugPrefill) return;
+  if (!$('sugReason').value.trim()) { $('sugReason').value = state.sugPrefill.slice(0, 1000); $('sugCount').textContent = $('sugReason').value.length; }
+  state.sugPrefill = '';
+  setMsg('sugMsg', 'Trouxemos o que você escreveu na busca. Agora diga o nome do curso que você gostaria que o IFS oferecesse.', 'info');
+  setTimeout(() => $('sugName').focus({ preventScroll: true }), 50);
+}
 $('sugForm').onsubmit = async e => {
   e.preventDefault();
   const course_name = $('sugName').value.trim(), reason = $('sugReason').value.trim();
