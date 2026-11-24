@@ -127,6 +127,10 @@ def init_management():
         db.execute("CREATE TABLE IF NOT EXISTS student_sessions (token_hash TEXT PRIMARY KEY, student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE, expires_at INTEGER NOT NULL)")
         db.execute("CREATE INDEX IF NOT EXISTS ix_sessions_student ON student_sessions(student_id)")
         db.execute("CREATE TABLE IF NOT EXISTS manager_sessions (token_hash TEXT PRIMARY KEY, username TEXT NOT NULL, expires_at INTEGER NOT NULL)")
+        # Sugestões de novos cursos feitas pelos estudantes ao IFS.
+        db.execute("CREATE TABLE IF NOT EXISTS course_suggestions (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE, created_at TEXT NOT NULL, course_name TEXT NOT NULL, area TEXT, campus TEXT, nivel TEXT, reason TEXT NOT NULL)")
+        db.execute("CREATE INDEX IF NOT EXISTS ix_suggestions_student ON course_suggestions(student_id)")
+        db.execute("CREATE INDEX IF NOT EXISTS ix_suggestions_date ON course_suggestions(created_at)")
         cols = {r[1] for r in db.execute('PRAGMA table_info(consultations)')}
         if 'student_id' not in cols:
             db.execute('ALTER TABLE consultations ADD COLUMN student_id INTEGER')
@@ -326,6 +330,7 @@ def student_delete(request: Request, response: FastAPIResponse, student=Depends(
     check_origin(request)
     with management_connection() as db:
         db.execute('DELETE FROM consultations WHERE student_id=?', (student['id'],))
+        db.execute('DELETE FROM course_suggestions WHERE student_id=?', (student['id'],))
         db.execute('DELETE FROM student_sessions WHERE student_id=?', (student['id'],))
         db.execute('DELETE FROM students WHERE id=?', (student['id'],))
     response.delete_cookie('ifs_session', path='/')
@@ -414,5 +419,126 @@ def management_export(period: int = 0, campus: str = 'all', nivel: str = 'all', 
     writer = csv.writer(output, delimiter=';')
     writer.writerow(['ID consulta','Aluno','Email','Data UTC','Campus selecionado','Nível selecionado','Interesses declarados','Primeiro curso recomendado','Área','Score de similaridade'])
     for r in data['consultas']:
-        writer.writerow([r['id'],r['aluno'],r['email'],r['data'],r['campus'],r['nivel'],r['interesses'],r['curso'],r['area'],r['score']])
+        writer.writerow(csv_safe([r['id'],r['aluno'],r['email'],r['data'],r['campus'],r['nivel'],r['interesses'],r['curso'],r['area'],r['score']]))
     return Response(content='\ufeff'+output.getvalue(),media_type='text/csv; charset=utf-8',headers={'Content-Disposition':'attachment; filename="relatorio_gestao_ifs.csv"'})
+
+
+def csv_safe(values):
+    """Evita que textos digitados por estudantes virem fórmulas ao abrir o CSV no Excel."""
+    return [("'" + v) if isinstance(v, str) and v[:1] in ('=', '+', '-', '@', '\t', '\r') else v for v in values]
+
+
+# ---------- Sugestões de novos cursos (estudante -> IFS) ----------
+
+SUGGESTION_LEVELS = ('Técnico Integrado', 'Técnico Subsequente', 'Graduação', 'Pós-graduação', 'Curso livre / FIC', 'Não sei')
+SUGGESTIONS_PER_DAY = 10
+
+def normalize_name(text):
+    import unicodedata
+    plain = unicodedata.normalize('NFD', str(text or '')).encode('ascii', 'ignore').decode()
+    return ' '.join(re.sub(r'[^a-z0-9 ]', ' ', plain.casefold()).split())
+
+class SuggestionRequest(BaseModel):
+    course_name: str = Field(min_length=3, max_length=120)
+    area: Optional[str] = Field(default=None, max_length=80)
+    campus: Optional[str] = Field(default=None, max_length=60)
+    nivel: Optional[str] = Field(default=None, max_length=40)
+    reason: str = Field(min_length=10, max_length=1000)
+
+def suggestion_row(r):
+    return {'id': r['id'], 'data': r['created_at'], 'curso': r['course_name'], 'area': r['area'],
+            'campus': r['campus'], 'nivel': r['nivel'], 'motivo': r['reason']}
+
+@app.post('/api/alunos/sugestoes', status_code=201)
+def create_suggestion(payload: SuggestionRequest, request: Request, student=Depends(require_student)):
+    check_origin(request)
+    name, reason = ' '.join(payload.course_name.split()), payload.reason.strip()
+    if len(name) < 3 or len(reason) < 10:
+        raise HTTPException(422, 'Informe o nome do curso e explique em pelo menos 10 caracteres por que ele deveria existir.')
+    valid_campi = {c.get('campus') for c in courses}
+    campus = payload.campus if payload.campus in valid_campi else None
+    nivel = payload.nivel if payload.nivel in SUGGESTION_LEVELS else None
+    area = ' '.join((payload.area or '').split()) or None
+    since = datetime.now(timezone.utc).date().isoformat()
+    with management_connection() as db:
+        today = db.execute('SELECT COUNT(*) FROM course_suggestions WHERE student_id=? AND created_at>=?', (student['id'], since)).fetchone()[0]
+        if today >= SUGGESTIONS_PER_DAY:
+            raise HTTPException(429, f'Você já enviou {SUGGESTIONS_PER_DAY} sugestões hoje. Tente novamente amanhã.')
+        cur = db.execute('INSERT INTO course_suggestions(student_id,created_at,course_name,area,campus,nivel,reason) VALUES(?,?,?,?,?,?,?)',
+                         (student['id'], datetime.now(timezone.utc).isoformat(), name, area, campus, nivel, reason))
+        row = db.execute('SELECT * FROM course_suggestions WHERE id=?', (cur.lastrowid,)).fetchone()
+    return suggestion_row(row)
+
+@app.get('/api/alunos/sugestoes')
+def list_own_suggestions(student=Depends(require_student)):
+    with management_connection() as db:
+        rows = db.execute('SELECT * FROM course_suggestions WHERE student_id=? ORDER BY id DESC LIMIT 100', (student['id'],)).fetchall()
+    return [suggestion_row(r) for r in rows]
+
+@app.delete('/api/alunos/sugestoes/{suggestion_id}')
+def delete_own_suggestion(suggestion_id: int, request: Request, student=Depends(require_student)):
+    check_origin(request)
+    with management_connection() as db:
+        deleted = db.execute('DELETE FROM course_suggestions WHERE id=? AND student_id=?', (suggestion_id, student['id'])).rowcount
+    if not deleted:
+        raise HTTPException(404, 'Sugestão não encontrada.')
+    return {'ok': True}
+
+@app.get('/api/gestao/sugestoes', dependencies=[Depends(management_auth)])
+def management_suggestions(period: int = 0, campus: str = 'all', search: str = ''):
+    if period not in (0, 7, 30, 90, 180, 365):
+        raise HTTPException(422, 'Período inválido')
+    from datetime import timedelta
+    sql = ('SELECT g.*, s.name AS student_name, s.email AS student_email '
+           'FROM course_suggestions g JOIN students s ON s.id=g.student_id WHERE 1=1')
+    args = []
+    if period:
+        sql += ' AND g.created_at>=?'
+        args.append((datetime.now(timezone.utc) - timedelta(days=period)).isoformat())
+    if campus != 'all':
+        sql += ' AND g.campus=?'
+        args.append(campus)
+    with management_connection() as db:
+        rows = [dict(r) for r in db.execute(sql + ' ORDER BY g.id DESC', args).fetchall()]
+    if search:
+        needle = search.casefold()
+        rows = [r for r in rows if needle in (r['course_name'] + ' ' + r['reason'] + ' ' + (r['area'] or '')).casefold()]
+    # Agrupa grafias diferentes do mesmo curso ("Enfermagem", "enfermagem ") e indica se ele já existe no catálogo.
+    catalog = {}
+    for c in courses:
+        catalog.setdefault(normalize_name(c.get('nome')), set()).add(c.get('campus'))
+    groups = {}
+    for r in rows:
+        key = normalize_name(r['course_name'])
+        g = groups.setdefault(key, {'names': Counter(), 'students': set(), 'campi': Counter(), 'areas': Counter(), 'total': 0})
+        g['names'][r['course_name']] += 1
+        g['students'].add(r['student_id'])
+        g['total'] += 1
+        if r['campus']:
+            g['campi'][r['campus']] += 1
+        if r['area']:
+            g['areas'][r['area']] += 1
+    ranking = sorted(({
+        'curso': g['names'].most_common(1)[0][0],
+        'estudantes': len(g['students']),
+        'sugestoes': g['total'],
+        'campi': [{'name': k, 'count': v} for k, v in g['campi'].most_common(3)],
+        'area': g['areas'].most_common(1)[0][0] if g['areas'] else None,
+        'ja_ofertado_em': sorted(catalog.get(key, [])),
+    } for key, g in groups.items()), key=lambda x: (-x['estudantes'], -x['sugestoes'], x['curso']))
+    return {'total_sugestoes': len(rows), 'estudantes': len({r['student_id'] for r in rows}),
+            'cursos_distintos': len(groups), 'ranking': ranking[:50],
+            'sugestoes': [{**suggestion_row(r), 'aluno': r['student_name'], 'email': r['student_email']} for r in rows]}
+
+@app.get('/api/gestao/sugestoes/export', dependencies=[Depends(management_auth)])
+def management_suggestions_export(period: int = 0, campus: str = 'all', search: str = ''):
+    import csv, io
+    data = management_suggestions(period, campus, search)
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=';')
+    writer.writerow(['ID', 'Data UTC', 'Aluno', 'Email', 'Curso sugerido', 'Área', 'Campus desejado', 'Nível', 'Motivo'])
+    for r in data['sugestoes']:
+        writer.writerow(csv_safe([r['id'], r['data'], r['aluno'], r['email'], r['curso'], r['area'],
+                                  r['campus'], r['nivel'], r['motivo']]))
+    return Response(content='﻿' + output.getvalue(), media_type='text/csv; charset=utf-8',
+                    headers={'Content-Disposition': 'attachment; filename="sugestoes_cursos_ifs.csv"'})

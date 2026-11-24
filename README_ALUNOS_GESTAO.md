@@ -12,6 +12,7 @@
 
 - Cadastro: nome, email, hash da senha, data de criação e registro do aceite de privacidade.
 - Consulta: estudante, data UTC, texto de interesses, filtros e até 10 resultados recomendados.
+- Sugestão de curso: estudante, data UTC, nome do curso, área, campus e nível desejados e o motivo. O estudante pode apagar cada sugestão; ao excluir a conta, todas são apagadas.
 - Não coleta IP ou dados de dispositivo para a base de consultas. O acesso administrativo usa login próprio de gestor, com sessão separada da do estudante.
 - Consultas antigas, anteriores à identificação, continuam sem estudante associado.
 - Estudantes podem consultar o próprio histórico e excluir conta e consultas vinculadas.
