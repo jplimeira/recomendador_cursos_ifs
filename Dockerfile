@@ -19,6 +19,8 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 COPY data ./data
+COPY config ./config
+COPY scripts ./scripts
 
 EXPOSE 8000
 
