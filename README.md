@@ -114,6 +114,14 @@ gráfico de radar e é combinado com o texto livre na recomendação:
 
 É um inventário de interesses para orientação educacional, não um teste psicológico.
 
+### Quando nenhum curso combina
+
+Se a melhor similaridade de texto entre as ofertas filtradas ficar abaixo de `LOW_AFFINITY_THRESHOLD`
+(padrão 0,40), a interface avisa que não há curso parecido no catálogo, continua mostrando as opções mais
+próximas e oferece um atalho para sugerir o curso ao IFS, com o texto da busca já preenchido. A gestão vê
+quantas buscas terminaram assim. O valor 0,40 foi observado com o modelo real (cursos pertinentes: 0,49 a
+0,64; pedidos fora do catálogo: saúde 0,27 e moda 0,37) e deve ser recalibrado na avaliação com especialistas.
+
 ## Interpretação do score
 
 O `score` é uma medida de similaridade usada para ordenar os resultados. **Não é probabilidade nem percentual de compatibilidade.** Valores dependem do modelo, do texto e do conjunto de cursos; não estabeleça um limiar universal sem validação.
