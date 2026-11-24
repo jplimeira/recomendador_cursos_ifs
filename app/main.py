@@ -11,7 +11,7 @@ from threading import Lock
 import sqlite3
 from datetime import datetime, timezone
 from collections import Counter
-from fastapi import Depends, Request, Response as FastAPIResponse, Cookie
+from fastapi import Depends, Request, Response as FastAPIResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.responses import Response
 from contextlib import asynccontextmanager
@@ -25,9 +25,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .scoring import (FIELD_LABELS, DEFAULT_WEIGHTS, RIASEC_NAMES, RIASEC_TYPES, holland_code,
+from .scoring import (RIASEC_NAMES, RIASEC_TYPES, holland_code,
                       load_weights, parse_holland_text, profile_from_answers, profile_is_flat, rank_courses)
-from .analytics import AnonymousMetrics
 
 logging.basicConfig(level=os.getenv('LOG_LEVEL', 'INFO'))
 logger = logging.getLogger('recomendador-ifs')
@@ -51,7 +50,6 @@ courses = []
 model = None
 course_vectors = {}
 institution_metadata = {}
-metrics = None
 # auto_error=False: a interface usa sessão por cookie; HTTP Basic segue aceito para scripts e testes.
 security = HTTPBasic(auto_error=False)
 MANAGEMENT_DB = os.getenv("MANAGEMENT_DB", str(ROOT / "runtime" / "management.sqlite3"))
@@ -188,7 +186,7 @@ def load_courses():
     return payload, items
 
 def initialize_model_and_embeddings():
-    global courses, model, course_vectors, institution_metadata, metrics
+    global courses, model, course_vectors, institution_metadata
     from sentence_transformers import SentenceTransformer
     metadata, loaded_courses = load_courses()
     logger.info('Carregando modelo %s em CPU...', MODEL_NAME)
@@ -201,8 +199,6 @@ def initialize_model_and_embeddings():
         vectors[field] = np.asarray(encoded, dtype=np.float32)
     # Publicação atômica após inicialização completa.
     institution_metadata, courses, course_vectors, model = metadata, loaded_courses, vectors, loaded_model
-    if os.getenv('ENABLE_ANONYMOUS_METRICS', 'false').lower() == 'true':
-        metrics = AnonymousMetrics(os.getenv('METRICS_DB', str(ROOT / 'runtime' / 'metrics.sqlite3')))
     logger.info('Inicialização concluída: %d ofertas, %d perfis.', len(courses), len({c.get('id_perfil') for c in courses}))
 
 @asynccontextmanager
@@ -278,12 +274,7 @@ def recommend(request: RecommendationRequest, student=Depends(require_student)):
     try:
         record_consultation(request, results, student["id"], query, mode, profile['codigo'] if profile else None, low_affinity)
     except Exception:
-        logger.exception("Falha ao registrar consulta anônima")
-    if metrics is not None:
-        try:
-            metrics.record_search()
-        except Exception:
-            logger.exception('Não foi possível registrar contador anônimo')
+        logger.exception("Falha ao registrar a consulta")
     descriptions = {'texto': 'similaridade de cosseno ponderada',
                     'riasec': 'congruência de perfis RIASEC (correlação)',
                     'hibrido': 'combinação de texto e perfil RIASEC'}

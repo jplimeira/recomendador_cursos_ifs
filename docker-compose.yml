@@ -13,12 +13,9 @@ services:
       MKL_NUM_THREADS: "4"
       LOG_LEVEL: INFO
       MAX_CONCURRENT_INFERENCES: "2"
-      ENABLE_ANONYMOUS_METRICS: "false"
       MANAGEMENT_DB: /app/runtime/management.sqlite3
       GESTAO_USER: ${GESTAO_USER:-gestao}
       GESTAO_PASSWORD: ${GESTAO_PASSWORD:?Defina GESTAO_PASSWORD no arquivo .env}
-      # Para habilitar contadores anônimos persistentes, monte um volume em /app/runtime.
-      # METRICS_DB: /app/runtime/metrics.sqlite3
     volumes:
       - modelo_huggingface:/models
       - dados_gestao:/app/runtime
