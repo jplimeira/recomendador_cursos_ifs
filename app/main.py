@@ -21,7 +21,8 @@ from typing import Optional
 
 import numpy as np
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .scoring import FIELD_LABELS, DEFAULT_WEIGHTS, load_weights, rank_courses
@@ -41,15 +42,34 @@ model = None
 course_vectors = {}
 institution_metadata = {}
 metrics = None
-security = HTTPBasic()
+# auto_error=False: a interface usa sessão por cookie; HTTP Basic segue aceito para scripts e testes.
+security = HTTPBasic(auto_error=False)
 MANAGEMENT_DB = os.getenv("MANAGEMENT_DB", str(ROOT / "runtime" / "management.sqlite3"))
+MANAGER_SESSION_SECONDS = 60 * 60 * 8
 
-def management_auth(credentials: HTTPBasicCredentials = Depends(security)):
-    username = os.getenv("GESTAO_USER", "gestao")
-    password = os.getenv("GESTAO_PASSWORD", "")
-    if not password or not (secrets.compare_digest(credentials.username.encode(), username.encode()) and secrets.compare_digest(credentials.password.encode(), password.encode())):
-        raise HTTPException(status_code=401, detail="Credenciais de gestão inválidas ou não configuradas.", headers={"WWW-Authenticate": "Basic"})
-    return True
+def valid_manager_credentials(username, password):
+    expected_user = os.getenv("GESTAO_USER", "gestao")
+    expected_password = os.getenv("GESTAO_PASSWORD", "")
+    if not expected_password:
+        return False
+    return (secrets.compare_digest(str(username).encode(), expected_user.encode())
+            and secrets.compare_digest(str(password).encode(), expected_password.encode()))
+
+def manager_from_session(request: Request):
+    token = request.cookies.get('ifs_gestao', '')
+    if not token:
+        return None
+    with management_connection() as db:
+        row = db.execute('SELECT username FROM manager_sessions WHERE token_hash=? AND expires_at>?',
+                         (session_digest(token), int(time.time()))).fetchone()
+    return row['username'] if row else None
+
+def management_auth(request: Request, credentials: Optional[HTTPBasicCredentials] = Depends(security)):
+    if manager_from_session(request):
+        return True
+    if credentials and valid_manager_credentials(credentials.username, credentials.password):
+        return True
+    raise HTTPException(status_code=401, detail="Acesso restrito à gestão. Faça login como gestor.")
 
 def management_connection():
     db = sqlite3.connect(MANAGEMENT_DB, timeout=10)
@@ -106,6 +126,7 @@ def init_management():
         db.execute("CREATE TABLE IF NOT EXISTS students (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE COLLATE NOCASE, password_hash TEXT NOT NULL, created_at TEXT NOT NULL, consent_at TEXT NOT NULL)")
         db.execute("CREATE TABLE IF NOT EXISTS student_sessions (token_hash TEXT PRIMARY KEY, student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE, expires_at INTEGER NOT NULL)")
         db.execute("CREATE INDEX IF NOT EXISTS ix_sessions_student ON student_sessions(student_id)")
+        db.execute("CREATE TABLE IF NOT EXISTS manager_sessions (token_hash TEXT PRIMARY KEY, username TEXT NOT NULL, expires_at INTEGER NOT NULL)")
         cols = {r[1] for r in db.execute('PRAGMA table_info(consultations)')}
         if 'student_id' not in cols:
             db.execute('ALTER TABLE consultations ADD COLUMN student_id INTEGER')
@@ -169,7 +190,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title='Recomendador de Cursos do IFS',
               description='Recomendação semântica de ofertas de cursos a partir de interesses em texto livre.',
-              version='1.1.0', lifespan=lifespan)
+              version='1.2.0', lifespan=lifespan)
+app.mount('/static', StaticFiles(directory=Path(__file__).parent / 'static'), name='static')
 
 @app.get('/', response_class=HTMLResponse)
 def home():
@@ -309,9 +331,60 @@ def student_delete(request: Request, response: FastAPIResponse, student=Depends(
     response.delete_cookie('ifs_session', path='/')
     return {'ok': True}
 
-@app.get('/gestao', response_class=HTMLResponse, dependencies=[Depends(management_auth)])
+def login_rate_limit(key):
+    now = time.time()
+    with LOGIN_LOCK:
+        recent = [t for t in LOGIN_ATTEMPTS.get(key, []) if now - t < 900]
+        if len(recent) >= 8:
+            raise HTTPException(429, 'Muitas tentativas. Aguarde 15 minutos.')
+        LOGIN_ATTEMPTS[key] = recent
+    return now
+
+class ManagerLoginRequest(BaseModel):
+    username: str = Field(max_length=100)
+    password: str = Field(max_length=256)
+
+@app.post('/api/gestao/login')
+def manager_login(payload: ManagerLoginRequest, request: Request, response: FastAPIResponse):
+    check_origin(request)
+    key = ('gestao:' + payload.username.strip().lower(), request.client.host if request.client else '')
+    now = login_rate_limit(key)
+    if not valid_manager_credentials(payload.username.strip(), payload.password):
+        with LOGIN_LOCK:
+            LOGIN_ATTEMPTS.setdefault(key, []).append(now)
+        raise HTTPException(401, 'Usuário ou senha de gestor inválidos.')
+    with LOGIN_LOCK:
+        LOGIN_ATTEMPTS.pop(key, None)
+    token = secrets.token_urlsafe(32)
+    with management_connection() as db:
+        db.execute('DELETE FROM manager_sessions WHERE expires_at<=?', (int(now),))
+        db.execute('INSERT INTO manager_sessions VALUES(?,?,?)',
+                   (session_digest(token), payload.username.strip(), int(now) + MANAGER_SESSION_SECONDS))
+    response.set_cookie('ifs_gestao', token, httponly=True, secure=request.url.scheme == 'https',
+                        samesite='strict', max_age=MANAGER_SESSION_SECONDS, path='/')
+    return {'username': payload.username.strip()}
+
+@app.get('/api/gestao/me')
+def manager_me(request: Request):
+    username = manager_from_session(request)
+    if not username:
+        raise HTTPException(401, 'Sessão de gestor inexistente ou expirada.')
+    return {'username': username}
+
+@app.post('/api/gestao/logout')
+def manager_logout(request: Request, response: FastAPIResponse):
+    check_origin(request)
+    token = request.cookies.get('ifs_gestao')
+    if token:
+        with management_connection() as db:
+            db.execute('DELETE FROM manager_sessions WHERE token_hash=?', (session_digest(token),))
+    response.delete_cookie('ifs_gestao', path='/')
+    return {'ok': True}
+
+@app.get('/gestao')
 def management_page():
-    return (Path(__file__).parent / 'gestao.html').read_text(encoding='utf-8')
+    # A gestão agora é uma aba da interface única.
+    return RedirectResponse('/#/gestao', status_code=307)
 
 @app.get('/api/gestao/dashboard', dependencies=[Depends(management_auth)])
 def management_dashboard(period: int = 0, campus: str = 'all', nivel: str = 'all', area: str = 'all', search: str = ''):

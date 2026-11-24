@@ -4,7 +4,7 @@
 
 1. Copie `.env.example` para `.env` e substitua `GESTAO_PASSWORD` por uma senha forte.
 2. Execute `docker compose up --build -d`.
-3. Acesse `/` para o recomendador e `/gestao` para a gestão. O navegador solicitará usuário e senha.
+3. Acesse `/`. Tudo fica numa única página com abas: estudantes usam **Entrar → Sou estudante**; gestores usam **Entrar → Sou gestor**.
 
 ## Dados reais
 
@@ -14,4 +14,4 @@ O painel não pode recuperar consultas anteriores à implantação. Os indicador
 
 ## Segurança
 
-A gestão é protegida por HTTP Basic. Use **HTTPS** em produção; HTTP Basic não criptografa credenciais sozinho. Configure segredo forte e não exponha `.env` em repositórios. Para implantação institucional, recomenda-se autenticação federada e controles de acesso mais completos.
+A gestão é protegida por login de gestor com sessão em cookie HttpOnly e SameSite=Strict (expira em 8 horas, com limite de tentativas). A API também aceita HTTP Basic para scripts. Use **HTTPS** em produção: sem ele, credenciais e cookies trafegam sem criptografia. Configure segredo forte e não exponha `.env` em repositórios. Para implantação institucional, recomenda-se autenticação federada e controles de acesso mais completos.

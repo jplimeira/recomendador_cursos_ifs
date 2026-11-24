@@ -5,14 +5,14 @@
 1. Copie `.env.example` para `.env` e configure uma senha administrativa longa e exclusiva em `GESTAO_PASSWORD`.
 2. Execute `docker compose up -d --build`.
 3. Abra `http://localhost:8000` para criar uma conta de estudante, entrar e consultar os cursos.
-4. Abra `http://localhost:8000/gestao` para acessar a gestão com as credenciais do `.env`.
+4. Na mesma página, clique em **Entrar → Sou gestor** e use as credenciais do `.env`. As abas de gestão (Painel, Consultas, Cursos) aparecem na barra superior. O endereço antigo `/gestao` redireciona para lá.
 5. No painel, o botão de atualização e a atualização automática a cada 30 segundos consultam dados do SQLite. O CSV exporta consultas reais, inclusive nomes e emails: proteja os arquivos exportados.
 
 ## Dados e privacidade
 
 - Cadastro: nome, email, hash da senha, data de criação e registro do aceite de privacidade.
 - Consulta: estudante, data UTC, texto de interesses, filtros e até 10 resultados recomendados.
-- Não coleta IP ou dados de dispositivo para a base de consultas. O acesso administrativo é separado por HTTP Basic.
+- Não coleta IP ou dados de dispositivo para a base de consultas. O acesso administrativo usa login próprio de gestor, com sessão separada da do estudante.
 - Consultas antigas, anteriores à identificação, continuam sem estudante associado.
 - Estudantes podem consultar o próprio histórico e excluir conta e consultas vinculadas.
 - Sessões expiram após 7 dias; o token aleatório é guardado como hash no SQLite e enviado ao navegador em cookie HttpOnly, SameSite=Strict. Em HTTPS, o cookie também é Secure.
