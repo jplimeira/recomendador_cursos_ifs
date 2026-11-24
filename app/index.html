@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recomendador de Cursos | IFS</title>
+  <style>
+    :root { font-family: Inter, system-ui, Arial, sans-serif; color: #172033; background: #f4f6fa; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header { background: #123b2a; color: white; padding: 26px 20px; }
+    header .wrap, main { max-width: 1050px; margin: auto; }
+    h1 { margin: 0 0 7px; font-size: 1.65rem; }
+    header p { margin: 0; color: #d9e9df; }
+    main { padding: 24px 18px 50px; }
+    .panel { background: white; border: 1px solid #e1e6ee; border-radius: 12px; padding: 20px; box-shadow: 0 3px 12px #1720330a; }
+    label { display: block; font-weight: 650; margin: 0 0 8px; }
+    textarea, select, input { width: 100%; border: 1px solid #cbd3df; border-radius: 8px; padding: 11px 12px; font: inherit; background: white; }
+    textarea { min-height: 130px; resize: vertical; }
+    .filters { display: grid; grid-template-columns: 1fr 1fr 130px; gap: 12px; margin-top: 14px; }
+    button { border: 0; background: #176b45; color: white; font: inherit; font-weight: 700; padding: 12px 18px; border-radius: 8px; cursor: pointer; margin-top: 16px; }
+    button:disabled { opacity: .55; cursor: wait; }
+    .muted { color: #667085; font-size: .9rem; }
+    #status { margin: 16px 0; }
+    .result { background: white; border: 1px solid #e1e6ee; border-radius: 10px; padding: 17px; margin: 12px 0; }
+    .result h3 { margin: 0 0 8px; }
+    .meta { color: #536174; font-size: .9rem; margin-bottom: 10px; }
+    .score { float: right; color: #176b45; font-weight: 750; font-variant-numeric: tabular-nums; }
+    details { margin-top: 12px; }
+    summary { cursor: pointer; color: #176b45; font-weight: 650; }
+    .barrow { display: grid; grid-template-columns: 190px 1fr 55px; gap: 9px; align-items: center; margin: 8px 0; font-size: .85rem; }
+    .bar { background: #edf0f4; border-radius: 8px; height: 8px; overflow: hidden; }
+    .bar > span { display: block; height: 100%; background: #39966b; }
+    .description { line-height: 1.5; }
+    .error { color: #b42318; }
+    @media (max-width: 650px) { .filters { grid-template-columns: 1fr; } .barrow { grid-template-columns: 1fr 1fr 45px; } .score { float: none; display: block; margin-bottom: 6px; } }
+  </style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Recomendador de Cursos do IFS</h1>
+  <p>Informe seus interesses para identificar ofertas de cursos semanticamente relacionadas.</p>
+</div></header>
+<main>
+  <section class="panel" id="authPanel" style="margin-bottom:16px">
+    <h2>Área do estudante</h2>
+    <div id="authForms">
+      <div class="filters" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+        <div><label for="studentName">Nome (para cadastro)</label><input id="studentName" autocomplete="name"></div>
+        <div><label for="studentEmail">Email</label><input id="studentEmail" type="email" autocomplete="email"></div>
+        <div><label for="studentPassword">Senha (mínimo 12 caracteres)</label><input id="studentPassword" type="password" autocomplete="current-password"></div>
+      </div>
+      <p class="muted">Suas consultas e recomendações ficarão associadas à sua conta e poderão ser visualizadas pela gestão autorizada. Não inclua dados sensíveis na descrição dos interesses. Você pode excluir sua conta e seu histórico.</p>
+      <label><input type="checkbox" id="privacyConsent" style="width:auto"> Li e concordo com o tratamento dos dados para recomendação e análise institucional, conforme o aviso acima.</label>
+      <button type="button" onclick="studentAuth('login')">Entrar</button>
+      <button type="button" onclick="studentAuth('cadastro')">Criar conta</button>
+    </div>
+    <div id="authLogged" hidden><p id="studentWelcome"></p><button type="button" onclick="showHistory()">Meu histórico</button> <button type="button" onclick="logoutStudent()">Sair</button> <button type="button" onclick="deleteStudent()" style="background:#a32d2d">Excluir minha conta</button></div>
+    <p id="authStatus" role="status"></p>
+    <div id="studentHistory"></div>
+  </section>
+  <section class="panel" id="recommendPanel" hidden>
+    <label for="interesses">Descrição dos interesses</label>
+    <textarea id="interesses" placeholder="Ex.: Tenho interesse em tecnologia, programação, inteligência artificial e criação de soluções digitais..."></textarea>
+    <div class="filters">
+      <div><label for="campus">Campus</label><select id="campus"><option>Todos</option></select></div>
+      <div><label for="nivel">Nível</label><select id="nivel"><option>Todos</option></select></div>
+      <div><label for="limite">Resultados</label><select id="limite"><option>5</option><option selected>10</option><option>20</option><option>46</option></select></div>
+    </div>
+    <button id="submit" onclick="recommend()">Buscar cursos recomendados</button>
+    <p class="muted">Processamento sem GPU. A primeira inicialização pode demorar enquanto o modelo é baixado.</p>
+  </section>
+  <div id="status" class="muted"></div>
+  <section id="results"></section>
+</main>
+<script>
+let loggedStudent = null;
+async function authRequest(path, method='GET', body) {
+  const response = await fetch(path, {method, credentials:'same-origin', headers: {'Content-Type':'application/json'}, ...(body ? {body:JSON.stringify(body)} : {})});
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = data.detail;
+    const message = typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(e => e.msg || 'Campo inválido').join('; ') : 'Não foi possível concluir a operação.';
+    throw new Error(message);
+  }
+  return data;
+}
+function setStudent(student) {
+  loggedStudent = student;
+  document.getElementById('authForms').hidden = !!student;
+  document.getElementById('authLogged').hidden = !student;
+  document.getElementById('recommendPanel').hidden = !student;
+  document.getElementById('studentWelcome').textContent = student ? `Olá, ${student.name}! (${student.email})` : '';
+  if (!student) document.getElementById('studentHistory').replaceChildren();
+}
+async function studentAuth(action) {
+  const status = document.getElementById('authStatus');
+  status.className = 'error';
+  status.textContent = '';
+  const name = document.getElementById('studentName').value.trim();
+  const email = document.getElementById('studentEmail').value.trim();
+  const password = document.getElementById('studentPassword').value;
+  const payload = {email, password};
+  if (action === 'cadastro') {
+    if (name.length < 2) {status.textContent = 'Informe seu nome (pelo menos 2 caracteres).'; return;}
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {status.textContent = 'Informe um email válido.'; return;}
+    if (password.length < 12) {status.textContent = 'A senha precisa ter pelo menos 12 caracteres.'; return;}
+    if (!document.getElementById('privacyConsent').checked) {status.textContent = 'Leia e aceite o aviso de privacidade para criar sua conta.'; return;}
+    payload.name = name;
+    payload.consent = true;
+  } else if (!email || !password) {
+    status.textContent = 'Informe seu email e sua senha.'; return;
+  }
+  try {
+    const student = await authRequest('/api/alunos/' + action, 'POST', payload);
+    setStudent(student);
+    document.getElementById('studentPassword').value = '';
+    status.className = 'muted';
+    status.textContent = action === 'cadastro' ? 'Conta criada com sucesso! Você já está conectado.' : 'Login realizado com sucesso.';
+  } catch (error) {status.textContent = error.message; status.className='error';}
+}
+async function showHistory() {
+  try {
+    const items = await authRequest('/api/alunos/historico');
+    document.getElementById('studentHistory').innerHTML = '<h3>Minhas últimas consultas</h3>' + (items.length ? items.map(item=>`<article class="result"><strong>${escapeHtml(new Date(item.data).toLocaleString('pt-BR'))}</strong><p>${escapeHtml(item.interesses)}</p><p>Primeiro curso recomendado: ${escapeHtml(item.curso || 'Nenhum')}</p></article>`).join('') : '<p>Nenhuma consulta registrada ainda.</p>');
+  } catch(e) {document.getElementById('authStatus').textContent=e.message;}
+}
+async function logoutStudent() {
+  await authRequest('/api/alunos/logout','POST'); setStudent(null);
+  document.getElementById('results').replaceChildren();
+}
+async function deleteStudent() {
+  if (!confirm('Excluir definitivamente sua conta e todas as consultas associadas?')) return;
+  try {await authRequest('/api/alunos/conta','DELETE');setStudent(null);document.getElementById('results').replaceChildren();}
+  catch(e) {document.getElementById('authStatus').textContent=e.message;}
+}
+async function loadStudent() {
+  try {setStudent(await authRequest('/api/alunos/me'));} catch {setStudent(null);}
+}
+async function loadMetadata() {
+  const status = document.getElementById('status');
+  for (let attempt = 0; attempt < 6; attempt++) {
+    try {
+      const response = await fetch('/metadata', {cache: 'no-store'});
+      if (!response.ok) throw new Error('Serviço ainda indisponível');
+      const data = await response.json();
+      for (const [id, values] of [['campus', data.campi], ['nivel', data.niveis]]) {
+        const select = document.getElementById(id);
+        select.replaceChildren(new Option('Todos', 'Todos'));
+        values.forEach(value => select.add(new Option(value, value)));
+      }
+      status.textContent = '';
+      return;
+    } catch (error) {
+      status.textContent = `Aguardando inicialização da aplicação... tentativa ${attempt + 1}/6`;
+      if (attempt < 5) await new Promise(resolve => setTimeout(resolve, Math.min(1000 * 2 ** attempt, 10000)));
+    }
+  }
+  status.innerHTML = '<span class="error">Não foi possível carregar os filtros. <button type="button" onclick="loadMetadata()">Tentar novamente</button></span>';
+}
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function renderResult(course, index) {
+  const dimensions = Object.values(course.detalhamento).map(d => {
+    const width = Math.max(0, Math.min(100, d.similaridade * 100));
+    return `<div class="barrow"><span>${escapeHtml(d.label)}</span><div class="bar"><span style="width:${width}%"></span></div><strong>${d.similaridade.toFixed(3)}</strong></div>`;
+  }).join('');
+  return `<article class="result">
+    <span class="score">Score: ${course.score.toFixed(4)}</span>
+    <h3>${index + 1}. ${escapeHtml(course.nome)}</h3>
+    <div class="meta">${escapeHtml(course.campus)} · ${escapeHtml(course.nivel)} · ${escapeHtml(course.duracao)} · ${escapeHtml(course.id_oferta)}</div>
+    <p class="description">${escapeHtml(course.descricao)}</p>
+    <p><strong>Dimensão mais próxima:</strong> ${escapeHtml(course.dimensao_mais_proxima)}</p>
+    <details><summary>Ver detalhamento da similaridade</summary>${dimensions}</details>
+    <details><summary>Interesses, habilidades e possibilidades profissionais</summary>
+      <p><strong>Interesses:</strong> ${escapeHtml(course.interesses_relacionados)}</p>
+      <p><strong>Habilidades:</strong> ${escapeHtml(course.habilidades_relacionadas)}</p>
+      <p><strong>Objetivos profissionais:</strong> ${escapeHtml(course.objetivos_profissionais)}</p>
+      <p><strong>Áreas de atuação:</strong> ${escapeHtml(course.areas_atuacao)}</p>
+      <p><strong>Dimensões vocacionais:</strong> ${escapeHtml(course.dimensoes_vocacionais)}</p>
+    </details>
+  </article>`;
+}
+async function recommend() {
+  const interesses = document.getElementById('interesses').value.trim();
+  const status = document.getElementById('status');
+  const results = document.getElementById('results');
+  const button = document.getElementById('submit');
+  if (interesses.length < 5) {
+    status.innerHTML = '<span class="error">Informe uma descrição de interesses com pelo menos 5 caracteres.</span>';
+    return;
+  }
+  button.disabled = true;
+  button.textContent = 'Processando...';
+  status.textContent = 'Calculando similaridade semântica...';
+  results.innerHTML = '';
+  try {
+    const response = await fetch('/recommend', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        interesses,
+        campus: document.getElementById('campus').value,
+        nivel: document.getElementById('nivel').value,
+        limite: Number(document.getElementById('limite').value)
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'Falha ao consultar recomendações.');
+    status.textContent = `${data.total_retornado} oferta(s) encontrada(s). ${data.observacao}`;
+    results.innerHTML = data.resultados.map(renderResult).join('');
+  } catch (error) {
+    status.innerHTML = `<span class="error">${escapeHtml(error.message)}</span>`;
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Buscar cursos recomendados';
+  }
+}
+loadMetadata();
+loadStudent();
+</script>
+</body>
+</html>
