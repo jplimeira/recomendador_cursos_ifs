@@ -93,6 +93,27 @@ Pesos iniciais:
 
 Os pesos são parâmetros iniciais e devem ser calibrados com exemplos avaliados por especialistas.
 
+## Perfil de interesses (RIASEC) e modo híbrido
+
+O estudante pode responder a um inventário de 30 atividades baseado no modelo RIASEC de Holland
+(Realista, Investigativo, Artístico, Social, Empreendedor, Convencional). O resultado aparece em um
+gráfico de radar e é combinado com o texto livre na recomendação:
+
+| Modo | Quando | Como ordena |
+|---|---|---|
+| Texto | só descrição | similaridade semântica ponderada (original) |
+| RIASEC | só inventário | correlação entre o perfil do estudante e o do curso, reescalada para 0 a 1 |
+| Híbrido | os dois | cada componente normalizado entre as ofertas e combinado por `RIASEC_WEIGHT` (padrão 0,5) |
+
+- Itens do questionário: `data/riasec_itens.json` (elaborados para o projeto; não validados para a população brasileira).
+- Perfis dos cursos: `data/riasec_cursos.json`, gerados por `python -m scripts.gerar_riasec_cursos` a partir do campo
+  `dimensoes_vocacionais` (1ª letra 1,0; 2ª 0,7; 3ª 0,5; "com componente" 0,4). Revise com o O*NET OnLine ou com
+  professores e troque o campo `fonte`; o script não sobrescreve perfis revisados.
+- Comparação dos modos: `python -m scripts.evaluate avaliacoes.json --pesos 0 0.25 0.5 0.75 1`. Cada caso pode trazer
+  `riasec` (vetor 0 a 1) ou `respostas` do questionário, além de `interesses` e `relevantes`.
+
+É um inventário de interesses para orientação educacional, não um teste psicológico.
+
 ## Interpretação do score
 
 O `score` é uma medida de similaridade usada para ordenar os resultados. **Não é probabilidade nem percentual de compatibilidade.** Valores dependem do modelo, do texto e do conjunto de cursos; não estabeleça um limiar universal sem validação.

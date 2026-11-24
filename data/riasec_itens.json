@@ -1,0 +1,56 @@
+{
+  "versao": "1.0",
+  "fonte": "Itens elaborados para este projeto no formato de preferência por atividades usado pelo O*NET Interest Profiler e pelo IPIP, com base no modelo RIASEC de Holland. Não são itens oficiais nem foram validados para a população brasileira.",
+  "instrucao": "Indique o quanto você gostaria de fazer cada atividade. Não pense se sabe fazer ou quanto ganharia: pense só se gostaria.",
+  "escala": [
+    {"valor": 1, "rotulo": "Não gosto nada"},
+    {"valor": 2, "rotulo": "Não gosto"},
+    {"valor": 3, "rotulo": "Tanto faz"},
+    {"valor": 4, "rotulo": "Gosto"},
+    {"valor": 5, "rotulo": "Gosto muito"}
+  ],
+  "tipos": {
+    "R": {"nome": "Realista", "descricao": "Atividades práticas e concretas: máquinas, ferramentas, construção, campo e natureza."},
+    "I": {"nome": "Investigativo", "descricao": "Investigar, analisar e entender como as coisas funcionam: ciência, lógica e pesquisa."},
+    "A": {"nome": "Artístico", "descricao": "Criar e se expressar: desenho, música, escrita, design e projetos originais."},
+    "S": {"nome": "Social", "descricao": "Ajudar, ensinar e cuidar de pessoas: educação, saúde, atendimento e comunidade."},
+    "E": {"nome": "Empreendedor", "descricao": "Liderar, convencer e negociar: negócios, vendas, gestão e tomada de decisões."},
+    "C": {"nome": "Convencional", "descricao": "Organizar e seguir procedimentos: dados, documentos, controle e normas."}
+  },
+  "itens": [
+    {"id": "R1", "tipo": "R", "texto": "Montar ou consertar equipamentos elétricos"},
+    {"id": "I1", "tipo": "I", "texto": "Resolver problemas de lógica ou de matemática"},
+    {"id": "A1", "tipo": "A", "texto": "Desenhar, pintar ou fazer ilustrações"},
+    {"id": "S1", "tipo": "S", "texto": "Ensinar algo novo a outras pessoas"},
+    {"id": "E1", "tipo": "E", "texto": "Liderar um grupo para cumprir uma meta"},
+    {"id": "C1", "tipo": "C", "texto": "Organizar arquivos, planilhas ou documentos"},
+
+    {"id": "R2", "tipo": "R", "texto": "Trabalhar com máquinas e ferramentas"},
+    {"id": "I2", "tipo": "I", "texto": "Fazer experimentos em um laboratório"},
+    {"id": "A2", "tipo": "A", "texto": "Criar o visual de um cartaz, site ou aplicativo"},
+    {"id": "S2", "tipo": "S", "texto": "Ajudar pessoas a resolver problemas do dia a dia"},
+    {"id": "E2", "tipo": "E", "texto": "Vender produtos ou serviços"},
+    {"id": "C2", "tipo": "C", "texto": "Controlar a entrada e a saída de produtos de um estoque"},
+
+    {"id": "R3", "tipo": "R", "texto": "Cuidar de plantações ou criar animais"},
+    {"id": "I3", "tipo": "I", "texto": "Descobrir a causa de um defeito ou problema técnico"},
+    {"id": "A3", "tipo": "A", "texto": "Tocar um instrumento ou compor músicas"},
+    {"id": "S3", "tipo": "S", "texto": "Cuidar da saúde ou do bem-estar de alguém"},
+    {"id": "E3", "tipo": "E", "texto": "Abrir e administrar o próprio negócio"},
+    {"id": "C3", "tipo": "C", "texto": "Seguir procedimentos e normas com bastante precisão"},
+
+    {"id": "R4", "tipo": "R", "texto": "Construir ou reformar coisas com as próprias mãos"},
+    {"id": "I4", "tipo": "I", "texto": "Analisar dados ou gráficos para chegar a uma conclusão"},
+    {"id": "A4", "tipo": "A", "texto": "Escrever histórias, poemas ou roteiros"},
+    {"id": "S4", "tipo": "S", "texto": "Receber e orientar visitantes ou turistas"},
+    {"id": "E4", "tipo": "E", "texto": "Convencer pessoas a apoiar uma ideia"},
+    {"id": "C4", "tipo": "C", "texto": "Conferir cálculos e registros para encontrar erros"},
+
+    {"id": "R5", "tipo": "R", "texto": "Fazer a manutenção de motores ou veículos"},
+    {"id": "I5", "tipo": "I", "texto": "Estudar como funcionam os seres vivos e a natureza"},
+    {"id": "A5", "tipo": "A", "texto": "Projetar a aparência de casas e de espaços"},
+    {"id": "S5", "tipo": "S", "texto": "Participar de ações voluntárias na comunidade"},
+    {"id": "E5", "tipo": "E", "texto": "Negociar preços e condições de um acordo"},
+    {"id": "C5", "tipo": "C", "texto": "Montar cronogramas e acompanhar prazos"}
+  ]
+}

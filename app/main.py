@@ -25,7 +25,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .scoring import FIELD_LABELS, DEFAULT_WEIGHTS, load_weights, rank_courses
+from .scoring import (FIELD_LABELS, DEFAULT_WEIGHTS, RIASEC_NAMES, RIASEC_TYPES, holland_code,
+                      load_weights, parse_holland_text, profile_from_answers, profile_is_flat, rank_courses)
 from .analytics import AnonymousMetrics
 
 logging.basicConfig(level=os.getenv('LOG_LEVEL', 'INFO'))
@@ -35,6 +36,10 @@ DATA_FILE = os.getenv('COURSES_JSON', str(ROOT / 'data' / 'cursos_ifs.json'))
 MODEL_NAME = os.getenv('EMBEDDING_MODEL', 'paraphrase-multilingual-MiniLM-L12-v2')
 WEIGHTS_FILE = os.getenv('WEIGHTS_FILE')
 FIELD_WEIGHTS = load_weights(WEIGHTS_FILE)
+RIASEC_ITEMS_FILE = os.getenv('RIASEC_ITEMS_FILE', str(ROOT / 'data' / 'riasec_itens.json'))
+RIASEC_COURSES_FILE = os.getenv('RIASEC_COURSES_FILE', str(ROOT / 'data' / 'riasec_cursos.json'))
+# Peso do perfil RIASEC no modo híbrido (0 = só texto, 1 = só perfil). Calibrar com scripts/evaluate.py.
+RIASEC_WEIGHT = min(max(float(os.getenv('RIASEC_WEIGHT', '0.5')), 0.0), 1.0)
 MAX_CONCURRENT_INFERENCES = max(1, int(os.getenv('MAX_CONCURRENT_INFERENCES', '2')))
 inference_slots = BoundedSemaphore(MAX_CONCURRENT_INFERENCES)
 courses = []
@@ -131,19 +136,26 @@ def init_management():
         db.execute("CREATE TABLE IF NOT EXISTS course_suggestions (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE, created_at TEXT NOT NULL, course_name TEXT NOT NULL, area TEXT, campus TEXT, nivel TEXT, reason TEXT NOT NULL)")
         db.execute("CREATE INDEX IF NOT EXISTS ix_suggestions_student ON course_suggestions(student_id)")
         db.execute("CREATE INDEX IF NOT EXISTS ix_suggestions_date ON course_suggestions(created_at)")
+        db.execute("CREATE TABLE IF NOT EXISTS riasec_profiles (student_id INTEGER PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE, answers_json TEXT NOT NULL, scores_json TEXT NOT NULL, code TEXT, updated_at TEXT NOT NULL)")
         cols = {r[1] for r in db.execute('PRAGMA table_info(consultations)')}
         if 'student_id' not in cols:
             db.execute('ALTER TABLE consultations ADD COLUMN student_id INTEGER')
+        if 'method' not in cols:
+            db.execute('ALTER TABLE consultations ADD COLUMN method TEXT')
+        if 'riasec_code' not in cols:
+            db.execute('ALTER TABLE consultations ADD COLUMN riasec_code TEXT')
         db.execute('CREATE INDEX IF NOT EXISTS ix_consultations_student ON consultations(student_id)')
 
-def record_consultation(request, results, student_id):
+def record_consultation(request, results, student_id, text, method='texto', riasec_code=None):
     # Histórico vinculado à conta autenticada. Não armazena IP nem identificador de dispositivo.
     top = results[0] if results else {}
     with management_connection() as db:
-        db.execute("INSERT INTO consultations(created_at,campus,nivel,interests,top_course,top_area,top_score,results_json,student_id) VALUES(?,?,?,?,?,?,?,?,?)", (datetime.now(timezone.utc).isoformat(), request.campus, request.nivel, request.interesses.strip(), top.get("nome"), top.get("area_principal"), top.get("score"), json.dumps(results[:10], ensure_ascii=False), student_id))
+        db.execute("INSERT INTO consultations(created_at,campus,nivel,interests,top_course,top_area,top_score,results_json,student_id,method,riasec_code) VALUES(?,?,?,?,?,?,?,?,?,?,?)", (datetime.now(timezone.utc).isoformat(), request.campus, request.nivel, text or '', top.get("nome"), top.get("area_principal"), top.get("score"), json.dumps(results[:10], ensure_ascii=False), student_id, method, riasec_code))
 
 class RecommendationRequest(BaseModel):
-    interesses: str = Field(..., min_length=5, max_length=2000)
+    # Opcional quando o estudante já respondeu ao inventário RIASEC.
+    interesses: Optional[str] = Field(default=None, max_length=2000)
+    usar_riasec: bool = True
     campus: Optional[str] = None
     nivel: Optional[str] = None
     limite: int = Field(default=10, ge=1, le=46)
@@ -222,23 +234,34 @@ def metadata():
 def recommend(request: RecommendationRequest, student=Depends(require_student)):
     if model is None:
         raise HTTPException(status_code=503, detail='Modelo ainda não foi carregado.')
-    query = request.interesses.strip()
-    if len(query) < 5:
+    query = (request.interesses or '').strip()
+    if request.interesses is not None and query and len(query) < 5:
         raise HTTPException(status_code=422, detail='Informe uma descrição de interesses mais completa.')
+    profile = load_student_profile(student['id']) if request.usar_riasec else None
+    if profile and profile_is_flat(profile['pontuacoes']):
+        profile = None  # respostas todas iguais não diferenciam cursos
+    if not query and not profile:
+        raise HTTPException(status_code=422, detail='Descreva seus interesses (pelo menos 5 caracteres) ou responda ao inventário de interesses.')
     if not inference_slots.acquire(blocking=False):
         raise HTTPException(status_code=503, detail='Sistema ocupado. Tente novamente em instantes.', headers={'Retry-After': '2'})
     try:
-        query_vector = np.asarray(model.encode([query], show_progress_bar=False,
-                                  convert_to_numpy=True, normalize_embeddings=True)[0], dtype=np.float32)
+        query_vector = None
+        if query:
+            query_vector = np.asarray(model.encode([query], show_progress_bar=False,
+                                      convert_to_numpy=True, normalize_embeddings=True)[0], dtype=np.float32)
         results = rank_courses(query_vector, courses, course_vectors, FIELD_WEIGHTS,
-                               request.campus, request.nivel, request.limite)
+                               request.campus, request.nivel, request.limite,
+                               riasec_user=profile['pontuacoes'] if profile else None,
+                               riasec_courses=riasec_course_profiles() if profile else None,
+                               riasec_weight=RIASEC_WEIGHT)
     except Exception:
         logger.exception('Erro durante a recomendação')
         raise HTTPException(status_code=500, detail='Não foi possível calcular as recomendações.')
     finally:
         inference_slots.release()
+    mode = results[0]['metodo'] if results else ('hibrido' if query and profile else 'riasec' if profile else 'texto')
     try:
-        record_consultation(request, results, student["id"])
+        record_consultation(request, results, student["id"], query, mode, profile['codigo'] if profile else None)
     except Exception:
         logger.exception("Falha ao registrar consulta anônima")
     if metrics is not None:
@@ -246,9 +269,14 @@ def recommend(request: RecommendationRequest, student=Depends(require_student)):
             metrics.record_search()
         except Exception:
             logger.exception('Não foi possível registrar contador anônimo')
+    descriptions = {'texto': 'similaridade de cosseno ponderada',
+                    'riasec': 'congruência de perfis RIASEC (correlação)',
+                    'hibrido': 'combinação de texto e perfil RIASEC'}
     return {'consulta': query, 'modelo': MODEL_NAME,
-            'metodo': 'similaridade de cosseno ponderada',
-            'observacao': 'O score é uma medida de similaridade para ordenar os resultados; não representa probabilidade nem percentual de compatibilidade.',
+            'modo': mode, 'metodo': descriptions[mode],
+            'peso_riasec': RIASEC_WEIGHT if mode == 'hibrido' else None,
+            'perfil_riasec': {'codigo': profile['codigo'], 'pontuacoes': profile['pontuacoes']} if profile else None,
+            'observacao': 'O score serve só para ordenar os resultados; não representa probabilidade nem percentual de compatibilidade.',
             'pesos': FIELD_WEIGHTS, 'total_retornado': len(results), 'resultados': results}
 
 class RegisterRequest(BaseModel):
@@ -331,6 +359,7 @@ def student_delete(request: Request, response: FastAPIResponse, student=Depends(
     with management_connection() as db:
         db.execute('DELETE FROM consultations WHERE student_id=?', (student['id'],))
         db.execute('DELETE FROM course_suggestions WHERE student_id=?', (student['id'],))
+        db.execute('DELETE FROM riasec_profiles WHERE student_id=?', (student['id'],))
         db.execute('DELETE FROM student_sessions WHERE student_id=?', (student['id'],))
         db.execute('DELETE FROM students WHERE id=?', (student['id'],))
     response.delete_cookie('ifs_session', path='/')
@@ -409,7 +438,7 @@ def management_dashboard(period: int = 0, campus: str = 'all', nivel: str = 'all
         for result in json.loads(r['results_json']):
             name = result.get('nome')
             if name: course_counts[(name, result.get('campus') or '')] += 1
-    return {'total_consultas':len(rows), 'alunos_distintos':len({r['student_id'] for r in rows if r['student_id']}), 'campi':len({r['campus'] for r in rows if r['campus']}), 'cursos_sugeridos':len(course_counts), 'areas': [{'name':k or 'Não informado','count':v} for k,v in Counter(r['top_area'] for r in rows).most_common()], 'regioes':[{'name':k or 'Não informado','count':v} for k,v in Counter(r['campus'] for r in rows).most_common()], 'evolucao':[{'day':k,'count':v} for k,v in sorted(Counter(r['created_at'][:10] for r in rows).items())], 'cursos':[{'nome':k[0],'campus':k[1], 'count':v} for k,v in course_counts.most_common(30)], 'consultas':[{'id':r['id'],'aluno':r['student_name'] or 'Consulta anterior sem identificação','email':r['student_email'] or '', 'data':r['created_at'],'campus':r['campus'],'nivel':r['nivel'],'interesses':r['interests'],'curso':r['top_course'],'area':r['top_area'],'score':r['top_score'],'resultados':json.loads(r['results_json'])} for r in rows], 'total_ofertas':len(courses), 'catalogo_campi':sorted({c['campus'] for c in courses}), 'catalogo_niveis':sorted({c['nivel'] for c in courses})}
+    return {'total_consultas':len(rows), 'alunos_distintos':len({r['student_id'] for r in rows if r['student_id']}), 'campi':len({r['campus'] for r in rows if r['campus']}), 'cursos_sugeridos':len(course_counts), 'areas': [{'name':k or 'Não informado','count':v} for k,v in Counter(r['top_area'] for r in rows).most_common()], 'regioes':[{'name':k or 'Não informado','count':v} for k,v in Counter(r['campus'] for r in rows).most_common()], 'evolucao':[{'day':k,'count':v} for k,v in sorted(Counter(r['created_at'][:10] for r in rows).items())], 'cursos':[{'nome':k[0],'campus':k[1], 'count':v} for k,v in course_counts.most_common(30)], 'consultas':[{'id':r['id'],'aluno':r['student_name'] or 'Consulta anterior sem identificação','email':r['student_email'] or '', 'data':r['created_at'],'campus':r['campus'],'nivel':r['nivel'],'interesses':r['interests'],'curso':r['top_course'],'area':r['top_area'],'score':r['top_score'],'metodo':r.get('method') or 'texto','perfil':r.get('riasec_code'),'resultados':json.loads(r['results_json'])} for r in rows], 'total_ofertas':len(courses), 'catalogo_campi':sorted({c['campus'] for c in courses}), 'catalogo_niveis':sorted({c['nivel'] for c in courses}), 'riasec': riasec_distribution()}
 
 @app.get('/api/gestao/export', dependencies=[Depends(management_auth)])
 def management_export(period: int = 0, campus: str = 'all', nivel: str = 'all', area: str = 'all', search: str = ''):
@@ -542,3 +571,86 @@ def management_suggestions_export(period: int = 0, campus: str = 'all', search: 
                                   r['campus'], r['nivel'], r['motivo']]))
     return Response(content='﻿' + output.getvalue(), media_type='text/csv; charset=utf-8',
                     headers={'Content-Disposition': 'attachment; filename="sugestoes_cursos_ifs.csv"'})
+
+
+# ---------- Inventário de interesses RIASEC ----------
+
+_riasec_cache = {}
+
+def riasec_questionnaire():
+    if 'items' not in _riasec_cache:
+        with open(RIASEC_ITEMS_FILE, encoding='utf-8') as handle:
+            data = json.load(handle)
+        ids = [i['id'] for i in data['itens']]
+        if len(ids) != len(set(ids)) or any(i['tipo'] not in RIASEC_TYPES for i in data['itens']):
+            raise ValueError('Questionário RIASEC inválido: IDs repetidos ou tipo desconhecido.')
+        _riasec_cache['items'] = data
+    return _riasec_cache['items']
+
+def riasec_course_profiles():
+    """Perfil RIASEC por id_perfil. Usa data/riasec_cursos.json; se faltar, deriva do texto do catálogo."""
+    if 'courses' not in _riasec_cache:
+        profiles = {}
+        if Path(RIASEC_COURSES_FILE).exists():
+            with open(RIASEC_COURSES_FILE, encoding='utf-8') as handle:
+                profiles = {k: v['vetor'] for k, v in json.load(handle)['perfis'].items()}
+        for c in courses:
+            profiles.setdefault(c.get('id_perfil'), parse_holland_text(c.get('dimensoes_vocacionais', '')))
+        _riasec_cache['courses'] = profiles
+    return _riasec_cache['courses']
+
+def profile_payload(scores, updated_at):
+    return {'pontuacoes': scores, 'codigo': holland_code(scores), 'atualizado_em': updated_at,
+            'diferenciado': not profile_is_flat(scores),
+            'tipos': {t: RIASEC_NAMES[t] for t in RIASEC_TYPES}}
+
+def load_student_profile(student_id):
+    with management_connection() as db:
+        row = db.execute('SELECT scores_json, updated_at FROM riasec_profiles WHERE student_id=?', (student_id,)).fetchone()
+    return profile_payload(json.loads(row['scores_json']), row['updated_at']) if row else None
+
+def riasec_distribution():
+    with management_connection() as db:
+        codes = [r['code'] for r in db.execute('SELECT code FROM riasec_profiles').fetchall()]
+    counts = Counter(c[0] for c in codes if c)
+    return {'perfis': len(codes), 'predominante': [{'tipo': t, 'nome': RIASEC_NAMES[t], 'count': counts.get(t, 0)} for t in RIASEC_TYPES]}
+
+@app.get('/api/riasec/questionario')
+def riasec_questionnaire_endpoint():
+    data = riasec_questionnaire()
+    return {k: data[k] for k in ('versao', 'fonte', 'instrucao', 'escala', 'tipos', 'itens')}
+
+class RiasecAnswers(BaseModel):
+    respostas: dict[str, int]
+
+@app.post('/api/alunos/riasec')
+def save_riasec(payload: RiasecAnswers, request: Request, student=Depends(require_student)):
+    check_origin(request)
+    data = riasec_questionnaire()
+    values = [e['valor'] for e in data['escala']]
+    try:
+        scores = profile_from_answers(data['itens'], payload.respostas, min(values), max(values))
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    answers = {i['id']: payload.respostas[i['id']] for i in data['itens']}
+    now = datetime.now(timezone.utc).isoformat()
+    with management_connection() as db:
+        db.execute('INSERT INTO riasec_profiles(student_id,answers_json,scores_json,code,updated_at) VALUES(?,?,?,?,?) '
+                   'ON CONFLICT(student_id) DO UPDATE SET answers_json=excluded.answers_json, scores_json=excluded.scores_json, '
+                   'code=excluded.code, updated_at=excluded.updated_at',
+                   (student['id'], json.dumps(answers), json.dumps(scores), holland_code(scores), now))
+    return profile_payload(scores, now)
+
+@app.get('/api/alunos/riasec')
+def get_riasec(student=Depends(require_student)):
+    profile = load_student_profile(student['id'])
+    if not profile:
+        raise HTTPException(404, 'Você ainda não respondeu ao inventário de interesses.')
+    return profile
+
+@app.delete('/api/alunos/riasec')
+def delete_riasec(request: Request, student=Depends(require_student)):
+    check_origin(request)
+    with management_connection() as db:
+        db.execute('DELETE FROM riasec_profiles WHERE student_id=?', (student['id'],))
+    return {'ok': True}

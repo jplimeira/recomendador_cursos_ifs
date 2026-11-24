@@ -92,18 +92,33 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.55; }
 .segmented button[aria-pressed="true"] { background: var(--surface); color: var(--green-strong); box-shadow: 0 1px 2px rgba(18, 63, 54, .12); }
 
 /* Início */
-.intro { display: grid; grid-template-columns: 1.15fr .85fr; gap: 40px; align-items: center; padding: 28px 0 36px; }
-.intro h1 { font-size: clamp(30px, 4.2vw, 46px); margin: 0 0 14px; letter-spacing: -.03em; }
-.intro p.lead { font-size: 17px; color: var(--muted); max-width: 56ch; margin: 0 0 24px; }
-.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
-.steps li { counter-increment: s; display: grid; grid-template-columns: 34px 1fr; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
-.steps li:first-child { border-top: 0; padding-top: 0; }
-.steps li::before { content: counter(s); width: 28px; height: 28px; border-radius: 50%; background: var(--green-tint); color: var(--green-strong); font-weight: 750; display: grid; place-items: center; font-size: 13px; }
-.steps b { display: block; }
-.steps span { color: var(--muted); font-size: 14px; }
-.facts { display: flex; gap: 28px; flex-wrap: wrap; padding: 18px 0 0; border-top: 1px solid var(--line); }
-.facts div b { display: block; font-size: 22px; color: var(--green-strong); }
-.facts div span { font-size: 13px; color: var(--muted); }
+.hero { position: relative; overflow: hidden; display: grid; grid-template-columns: 1.1fr .9fr; gap: 32px; align-items: center;
+  background: var(--green-dark); color: #fff; border-radius: 18px; padding: 52px 48px 40px; box-shadow: 0 10px 30px rgba(18, 63, 54, .18); }
+.hero h1 { font-size: clamp(32px, 4.2vw, 50px); margin: 0 0 16px; letter-spacing: -.03em; max-width: 16ch; }
+.hero .lead { font-size: 17px; color: #cfe3d8; max-width: 52ch; margin: 0 0 28px; }
+.hero .btn.primary { background: #fff; border-color: #fff; color: var(--green-dark); }
+.hero .btn.primary:hover { background: #e6f2eb; border-color: #e6f2eb; }
+.hero .btn.outline { background: transparent; border-color: rgba(255, 255, 255, .45); color: #fff; }
+.hero .btn.outline:hover { background: rgba(255, 255, 255, .08); border-color: #fff; }
+.hero :focus-visible { outline-color: #fff; }
+.hero-facts { display: flex; gap: 36px; flex-wrap: wrap; margin-top: 36px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, .16); }
+.hero-facts b { display: block; font-size: 26px; letter-spacing: -.02em; }
+.hero-facts span { font-size: 13px; color: #b9d3c6; }
+.hex { width: 100%; max-width: 460px; justify-self: center; }
+.hex .ring { fill: none; stroke: rgba(255, 255, 255, .14); }
+.hex .axis { stroke: rgba(255, 255, 255, .14); }
+.hex .shape { fill: rgba(140, 214, 170, .28); stroke: #8cd6aa; stroke-width: 2; stroke-linejoin: round; }
+.hex .node { fill: #8cd6aa; }
+.hex text { fill: #e3f0e8; font-size: 14px; font-weight: 600; font-family: var(--font); }
+.hex .letter { fill: #8cd6aa; font-weight: 800; }
+.hex-caption { text-align: center; color: #b9d3c6; font-size: 12px; margin-top: 4px; }
+.steps-row { list-style: none; margin: 28px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; counter-reset: s; }
+.steps-row li { counter-increment: s; padding-top: 14px; border-top: 2px solid var(--line); }
+.steps-row li::before { content: counter(s); display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--green-tint); color: var(--green-strong); font-weight: 750; font-size: 13px; margin-bottom: 10px; }
+.steps-row b { display: block; margin-bottom: 4px; }
+.steps-row span { color: var(--muted); font-size: 14px; }
+.home-note { margin-top: 28px; color: var(--muted); font-size: 13px; }
 
 /* Entrar */
 .auth { max-width: 460px; margin: 8px auto 0; }
@@ -137,6 +152,49 @@ summary { cursor: pointer; color: var(--green); font-weight: 650; font-size: 14p
 .hist-item p { margin: 6px 0 8px; max-width: 75ch; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--green-tint); color: var(--green-strong); font-weight: 600; }
+
+/* Perfil de interesses (RIASEC) */
+.progress { height: 6px; background: #e3eae6; border-radius: 6px; overflow: hidden; }
+.progress > span { display: block; height: 100%; background: var(--green); width: 0; transition: width .3s cubic-bezier(.2, .8, .2, 1); }
+.quiz-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; font-size: 13px; color: var(--muted); }
+.likert-item { border: 0; margin: 0; padding: 16px 0; border-top: 1px solid var(--line); }
+.likert-item:first-of-type { border-top: 0; }
+.likert-item legend { font-weight: 650; padding: 0; margin-bottom: 10px; float: left; width: 100%; }
+.likert-item.missing legend { color: var(--danger); }
+.likert { clear: both; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.likert label { position: relative; display: flex; align-items: center; justify-content: center; text-align: center; min-height: 44px; padding: 6px 4px;
+  border: 1px solid var(--line-strong); border-radius: 8px; font-size: 12px; line-height: 1.25; cursor: pointer; background: var(--surface); transition: background-color .15s, border-color .15s; }
+.likert label:hover { border-color: var(--green); background: var(--green-tint-2); }
+.likert input { position: absolute; opacity: 0; pointer-events: none; }
+.likert label:has(input:checked) { background: var(--green); border-color: var(--green); color: #fff; font-weight: 650; }
+.likert label:has(input:focus-visible) { outline: 2px solid var(--green); outline-offset: 2px; }
+.profile-layout { display: grid; grid-template-columns: minmax(280px, 360px) 1fr; gap: 20px; align-items: start; }
+.radar { width: 100%; max-width: 400px; display: block; margin: auto; }
+.radar .ring { fill: none; stroke: #dfe7e2; }
+.radar .axis { stroke: #dfe7e2; }
+.radar .area { fill: rgba(23, 107, 69, .22); stroke: var(--green); stroke-width: 2; stroke-linejoin: round; }
+.radar .dot { fill: var(--green); }
+.radar text { font-size: 15px; fill: var(--muted); font-family: var(--font); }
+.radar text.top { fill: var(--green-strong); font-weight: 700; }
+.type-row { padding: 14px 0; border-top: 1px solid var(--line); }
+.type-row:first-child { border-top: 0; padding-top: 0; }
+.type-row header { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.type-row b { font-size: 15px; }
+.type-row p { margin: 4px 0 8px; color: var(--muted); font-size: 14px; }
+.profile-box { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 8px; background: var(--green-tint-2); border: 1px solid var(--line); }
+.profile-box small { display: block; color: var(--muted); font-size: 12px; }
+.code-chip { font-weight: 700; color: var(--green-strong); }
+
+.type-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 8px; }
+.chips-label { font-size: 12px; font-weight: 700; color: var(--muted); margin-right: 2px; }
+.type-chip { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: #eef2f0; color: #4a5952; }
+.type-chip.shared { background: var(--green-tint); color: var(--green-strong); font-weight: 650; box-shadow: inset 0 0 0 1px #b7dbc6; }
+.chips-note { font-size: 12px; color: var(--green-strong); }
+.result { transition: border-color .15s, box-shadow .15s; }
+.result:hover { border-color: var(--line-strong); box-shadow: var(--shadow); }
+.result h3 { letter-spacing: -.015em; }
+.topbar { box-shadow: 0 1px 0 rgba(18, 63, 54, .04); }
+.topbar::before { content: ""; display: block; height: 3px; background: var(--green); }
 
 /* Sugestões */
 .sug-layout { display: grid; grid-template-columns: minmax(300px, 440px) 1fr; gap: 20px; align-items: start; }
@@ -183,9 +241,11 @@ tr.detail-row td { background: var(--green-tint-2); }
 footer { max-width: 1240px; margin: auto; padding: 18px 20px 32px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); }
 
 @media (max-width: 980px) {
-  .intro, .rec-layout { grid-template-columns: 1fr; }
+  .hero, .rec-layout { grid-template-columns: 1fr; }
+  .hex { max-width: 300px; }
+  .steps-row { grid-template-columns: 1fr 1fr; }
   .rec-form { position: static; }
-  .sug-layout { grid-template-columns: 1fr; }
+  .sug-layout, .profile-layout { grid-template-columns: 1fr; }
   .g-filters { grid-template-columns: 1fr 1fr; }
   .kpis { grid-template-columns: 1fr 1fr; }
   .charts { grid-template-columns: 1fr; }
@@ -194,8 +254,11 @@ footer { max-width: 1240px; margin: auto; padding: 18px 20px 32px; color: var(--
   .topbar-inner { padding: 8px 14px 0; }
   .who { display: none; }
   main { padding: 20px 14px 44px; }
+  .hero { padding: 32px 22px 26px; border-radius: 14px; }
+  .steps-row { grid-template-columns: 1fr; }
   .dim { grid-template-columns: 1fr 1fr 48px; }
   .filters-row { grid-template-columns: 1fr; }
+  .likert label { font-size: 11px; }
 }
 </style>
 </head>
@@ -214,27 +277,27 @@ footer { max-width: 1240px; margin: auto; padding: 18px 20px 32px; color: var(--
 <main id="main" tabindex="-1">
   <!-- Início -->
   <section data-view="inicio">
-    <div class="intro">
+    <div class="hero">
       <div>
         <h1>Descubra cursos do IFS a partir do que você gosta</h1>
-        <p class="lead">Escreva com suas palavras seus interesses, habilidades e planos. O sistema compara a sua descrição com as ofertas de cursos dos campi do IFS e sugere as mais próximas.</p>
+        <p class="lead">Responda a perguntas rápidas sobre atividades, conte com suas palavras o que você quer para o futuro e veja as ofertas dos campi do IFS que mais combinam com você.</p>
         <div class="actions">
           <a class="btn primary" id="ctaStart" href="#/entrar">Começar agora</a>
-          <a class="btn" href="#/entrar?perfil=gestor">Acesso da gestão</a>
+          <a class="btn outline" href="#/entrar?perfil=gestor">Acesso da gestão</a>
         </div>
+        <div class="hero-facts" id="facts"></div>
       </div>
-      <div class="panel">
-        <h2>Como funciona</h2>
-        <p class="muted small" style="margin:0 0 14px">Leva poucos minutos.</p>
-        <ol class="steps">
-          <li><div><b>Crie sua conta</b><span>Nome, email e senha. Você pode excluí-la quando quiser.</span></div></li>
-          <li><div><b>Descreva seus interesses</b><span>Do que gosta, o que sabe fazer e o que quer para o futuro.</span></div></li>
-          <li><div><b>Compare as ofertas</b><span>Veja curso, campus e nível, e por que cada um apareceu.</span></div></li>
-          <li><div><b>Sugira o que falta</b><span>Não achou o curso que queria? Sugira ao IFS.</span></div></li>
-        </ol>
-      </div>
+      <figure style="margin:0">
+        <svg class="hex" viewBox="0 0 480 330" role="img" aria-label="Hexágono de Holland com os seis tipos de interesse: Realista, Investigativo, Artístico, Social, Empreendedor e Convencional" id="heroHex"></svg>
+        <figcaption class="hex-caption">Os seis tipos de interesse do modelo de Holland (RIASEC)</figcaption>
+      </figure>
     </div>
-    <div class="facts" id="facts"></div>
+    <ol class="steps-row">
+      <li><b>Crie sua conta</b><span>Nome, email e senha. Você pode excluí-la quando quiser.</span></li>
+      <li><b>Conte do que você gosta</b><span>30 perguntas rápidas sobre atividades e, se quiser, um texto com suas palavras.</span></li>
+      <li><b>Compare as ofertas</b><span>Curso, campus e nível, com a explicação de por que cada um apareceu.</span></li>
+      <li><b>Sugira o que falta</b><span>Não achou o curso que queria? Sugira ao IFS.</span></li>
+    </ol>
   </section>
 
   <!-- Entrar -->
@@ -278,8 +341,9 @@ footer { max-width: 1240px; margin: auto; padding: 18px 20px 32px; color: var(--
     <div class="view-head"><div><h1>Encontrar cursos</h1><p>Quanto mais você contar sobre seus interesses, habilidades e objetivos, melhores ficam as sugestões.</p></div></div>
     <div class="rec-layout">
       <form class="panel grid rec-form" id="recForm" novalidate>
+        <div id="recProfile"></div>
         <div class="field">
-          <label for="interesses">Sobre você</label>
+          <label for="interesses">Sobre você <span class="muted" id="interessesOpt" hidden>(opcional com o perfil)</span></label>
           <textarea id="interesses" maxlength="2000" placeholder="Ex.: Gosto de tecnologia e de resolver problemas com lógica. Tenho facilidade com matemática e quero trabalhar criando aplicativos."></textarea>
           <span class="hint"><span id="charCount" class="num">0</span>/2000 caracteres</span>
         </div>
@@ -291,11 +355,56 @@ footer { max-width: 1240px; margin: auto; padding: 18px 20px 32px; color: var(--
           <select id="limite"><option>5</option><option selected>10</option><option>20</option><option value="46">Todas</option></select></div>
         <p class="msg" id="recMsg" role="status"></p>
         <button class="btn primary" type="submit" id="recSubmit">Buscar cursos</button>
-        <p class="muted small" style="margin:0">A pontuação indica semelhança entre textos, usada só para ordenar. Não é porcentagem de compatibilidade.</p>
+        <p class="muted small" style="margin:0">A pontuação serve só para ordenar as ofertas. Não é porcentagem de compatibilidade.</p>
       </form>
       <div id="results" aria-live="polite">
         <div class="empty"><b>Suas sugestões aparecem aqui</b>Descreva seus interesses e clique em “Buscar cursos”.</div>
       </div>
+    </div>
+  </section>
+
+  <!-- Perfil de interesses (RIASEC) -->
+  <section data-view="perfil" hidden>
+    <div class="view-head"><div><h1>Meu perfil de interesses</h1><p>Baseado no modelo RIASEC de Holland, que agrupa os interesses em seis tipos. O resultado ajuda a ordenar os cursos para você.</p></div></div>
+
+    <div class="panel stack" id="pfIntro" hidden style="max-width:760px">
+      <h2>Como funciona</h2>
+      <p style="margin:0">São <b>30 atividades</b>. Para cada uma, diga o quanto você <b>gostaria</b> de fazê-la. Não importa se você já sabe fazer ou quanto ganharia. Leva cerca de 4 minutos, e você pode parar e continuar depois.</p>
+      <p class="muted small" style="margin:0" id="pfSource"></p>
+      <div class="actions"><button class="btn primary" type="button" id="pfStart">Começar</button></div>
+    </div>
+
+    <form class="panel" id="pfQuiz" hidden novalidate style="max-width:760px">
+      <div class="quiz-head"><span id="pfStep">Parte 1 de 5</span><span id="pfCount" class="num">0 de 30 respondidas</span></div>
+      <div class="progress" aria-hidden="true"><span id="pfBar"></span></div>
+      <p class="muted small" id="pfInstr" style="margin:14px 0 4px"></p>
+      <div id="pfItems"></div>
+      <p class="msg" id="pfMsg" role="status"></p>
+      <div class="actions" style="justify-content:space-between;margin-top:8px">
+        <button class="btn" type="button" id="pfBack">Voltar</button>
+        <button class="btn primary" type="submit" id="pfNext">Próximo</button>
+      </div>
+    </form>
+
+    <div id="pfResult" hidden>
+      <div class="profile-layout">
+        <div class="panel">
+          <h2>Seu perfil</h2>
+          <p class="muted small" style="margin:0 0 8px">Código: <span class="code-chip" id="pfCode"></span></p>
+          <div id="pfRadar"></div>
+        </div>
+        <div class="panel">
+          <h2 style="margin-bottom:14px">Seus interesses mais fortes</h2>
+          <p class="msg info" id="pfFlat" hidden>Suas respostas ficaram muito parecidas entre os seis tipos, então o perfil não ajuda a diferenciar cursos. Refaça o inventário usando mais as pontas da escala, ou use só a descrição em texto.</p>
+          <div id="pfTypes"></div>
+          <div class="actions" style="margin-top:16px">
+            <a class="btn primary" href="#/recomendar">Ver cursos para meu perfil</a>
+            <button class="btn" type="button" id="pfRedo">Refazer</button>
+            <button class="btn ghost" type="button" id="pfDelete">Apagar perfil</button>
+          </div>
+        </div>
+      </div>
+      <p class="muted small">Este é um inventário de interesses para orientação educacional, não um teste psicológico. As perguntas foram elaboradas para este projeto e ainda não foram validadas para a população brasileira.</p>
     </div>
   </section>
 
@@ -370,6 +479,7 @@ footer { max-width: 1240px; margin: auto; padding: 18px 20px 32px; color: var(--
         <div class="panel wide"><h3>Consultas por dia</h3><div id="gTimeline"></div></div>
         <div class="panel"><h3>Áreas do curso mais indicado</h3><div class="bars" id="gAreas"></div></div>
         <div class="panel"><h3>Consultas por campus escolhido</h3><div class="bars" id="gCampi"></div></div>
+        <div class="panel wide"><h3>Tipo de interesse predominante (RIASEC)</h3><p class="muted small" id="gRiasecNote" style="margin:-6px 0 10px"></p><div class="bars" id="gRiasec"></div></div>
       </div>
       <p class="muted small">Contagens vêm só das consultas registradas. A frequência de um curso nas recomendações não comprova demanda por uma nova oferta.</p>
     </div>
@@ -418,7 +528,7 @@ footer { max-width: 1240px; margin: auto; padding: 18px 20px 32px; color: var(--
 
 <script>
 const $ = id => document.getElementById(id);
-const state = { aluno: null, gestor: null, metadata: null, dashboard: null, role: 'aluno', mode: 'login', next: null, sub: 'visao' };
+const state = { aluno: null, gestor: null, metadata: null, dashboard: null, role: 'aluno', mode: 'login', next: null, sub: 'visao', profile: null, lastProfileCode: '' };
 const nf = new Intl.NumberFormat('pt-BR');
 const sf = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -443,6 +553,7 @@ const ROUTES = {
   'inicio':           { view: 'inicio',     title: 'Início' },
   'entrar':           { view: 'entrar',     title: 'Entrar' },
   'recomendar':       { view: 'recomendar', title: 'Encontrar cursos', needs: 'aluno' },
+  'perfil':           { view: 'perfil',     title: 'Perfil de interesses', needs: 'aluno' },
   'historico':        { view: 'historico',  title: 'Meu histórico', needs: 'aluno' },
   'sugerir':          { view: 'sugerir',    title: 'Sugerir curso', needs: 'aluno' },
   'conta':            { view: 'conta',      title: 'Minha conta', needs: 'aluno' },
@@ -467,14 +578,20 @@ function parseHash() {
 function renderNav(current) {
   const link = (path, label) => `<a class="tab" href="#/${path}" ${current === path ? 'aria-current="page"' : ''}>${label}</a>`;
   let html = link('inicio', 'Início');
-  if (state.aluno) html += link('recomendar', 'Encontrar cursos') + link('historico', 'Meu histórico') + link('sugerir', 'Sugerir curso') + link('conta', 'Minha conta');
+  if (state.aluno) html += link('recomendar', 'Encontrar cursos') + link('perfil', 'Perfil de interesses') + link('historico', 'Meu histórico') + link('sugerir', 'Sugerir curso') + link('conta', 'Minha conta');
   if (state.gestor) html += `<span class="tab-group">Gestão</span>` + link('gestao', 'Painel') + link('gestao/consultas', 'Consultas') + link('gestao/cursos', 'Cursos') + link('gestao/sugestoes', 'Sugestões');
   if (!state.aluno || !state.gestor) html += link('entrar', 'Entrar');
   $('tabs').innerHTML = html;
 
-  const who = [], both = state.aluno && state.gestor;
-  if (state.aluno) who.push(`<div class="who"><b>${esc(state.aluno.name)}</b><small>Estudante</small></div><button class="btn small" data-action="logout-aluno">${both ? 'Sair (aluno)' : 'Sair'}</button>`);
-  if (state.gestor) who.push(`<div class="who"><b>${esc(state.gestor.username)}</b><small>Gestão</small></div><button class="btn small" data-action="logout-gestor">${both ? 'Sair (gestão)' : 'Sair'}</button>`);
+  // Cada "Sair" aparece na sua própria área: nas abas do estudante, só a sessão do estudante;
+  // nas abas da gestão, só a da gestão. Nas páginas comuns (Início, Entrar) aparecem as duas, identificadas.
+  const area = ROUTES[current]?.needs;
+  const showAluno = state.aluno && (!area || area === 'aluno');
+  const showGestor = state.gestor && (!area || area === 'gestor');
+  const both = showAluno && showGestor;
+  const who = [];
+  if (showAluno) who.push(`<div class="who"><b>${esc(state.aluno.name)}</b><small>Estudante</small></div><button class="btn small" data-action="logout-aluno">${both ? 'Sair (aluno)' : 'Sair'}</button>`);
+  if (showGestor) who.push(`<div class="who"><b>${esc(state.gestor.username)}</b><small>Gestão</small></div><button class="btn small" data-action="logout-gestor">${both ? 'Sair (gestão)' : 'Sair'}</button>`);
   $('session').innerHTML = who.join('');
   $('ctaStart').href = state.aluno ? '#/recomendar' : '#/entrar';
   $('ctaStart').textContent = state.aluno ? 'Encontrar cursos' : 'Começar agora';
@@ -499,6 +616,8 @@ async function route() {
     $('authNotice').textContent = params.get('aviso') ? (params.get('perfil') === 'gestor' ? 'Entre como gestor para acessar a gestão.' : 'Entre com sua conta de estudante para continuar.') : '';
   }
   if (r.view === 'historico') loadHistory();
+  if (r.view === 'perfil') showProfileView();
+  if (r.view === 'recomendar') renderRecProfile();
   if (r.view === 'sugerir') loadMySuggestions();
   if (r.view === 'conta') renderAccount();
   if (r.view === 'gestao') {
@@ -551,6 +670,7 @@ $('studentForm').onsubmit = async e => {
   const btn = $('studentSubmit'); btn.disabled = true;
   try {
     state.aluno = await api('/api/alunos/' + (cadastro ? 'cadastro' : 'login'), { method: 'POST', body: cadastro ? { name, email, password, consent: true } : { email, password } });
+    await loadProfile();
     $('studentPassword').value = '';
     goAfterLogin('aluno');
   } catch (err) { setMsg('studentMsg', err.message); }
@@ -574,7 +694,7 @@ document.addEventListener('click', async e => {
   const action = e.target.closest('[data-action]')?.dataset.action;
   if (action === 'logout-aluno') {
     await api('/api/alunos/logout', { method: 'POST' }).catch(() => {});
-    state.aluno = null; $('results').innerHTML = emptyResults; location.hash = '#/inicio'; route();
+    state.aluno = null; state.profile = null; $('results').innerHTML = emptyResults; location.hash = '#/inicio'; route();
   }
   if (action === 'logout-gestor') {
     await api('/api/gestao/logout', { method: 'POST' }).catch(() => {});
@@ -591,12 +711,20 @@ function renderResult(c, i) {
     const w = Math.max(0, Math.min(100, d.similaridade * 100));
     return `<div class="dim"><span>${esc(d.label)}</span><div class="track"><span style="width:${w}%"></span></div><span class="num" style="text-align:right">${sf.format(d.similaridade)}</span></div>`;
   }).join('');
+  const userCode = state.lastProfileCode || '';
+  const shared = [...(c.codigo_curso || '')].filter(t => userCode.includes(t)).map(t => TYPE_NAMES[t]);
+  const parts = [];
+  if (c.score_texto !== undefined && c.score_riasec !== undefined)
+    parts.push(`<p class="small">Semelhança com o seu texto: <b class="num">${sf.format(c.score_texto)}</b> · Congruência com o seu perfil: <b class="num">${sf.format(c.score_riasec)}</b> (0 a 1)</p>`);
+  else if (c.score_riasec !== undefined)
+    parts.push(`<p class="small">Congruência com o seu perfil: <b class="num">${sf.format(c.score_riasec)}</b> (0 a 1)</p>`);
   return `<article class="result">
-    <div class="result-head"><h3>${i + 1}. ${esc(c.nome)}</h3><div class="score">Similaridade<b class="num">${sf.format(c.score)}</b></div></div>
+    <div class="result-head"><h3>${i + 1}. ${esc(c.nome)}</h3><div class="score">${c.metodo === 'texto' ? 'Similaridade' : 'Pontuação'}<b class="num">${sf.format(c.score)}</b></div></div>
     <div class="meta">${esc(c.campus)} · ${esc(c.nivel)} · ${esc(c.duracao)} · ${esc(c.area_principal)}</div>
     <p class="desc">${esc(c.descricao)}</p>
-    <p class="small" style="margin:0"><b>Mais parecido com:</b> ${esc(c.dimensao_mais_proxima)}</p>
-    <details><summary>Por que este curso apareceu</summary>${dims}</details>
+    ${c.codigo_curso ? `<div class="type-chips" aria-label="Perfil do curso"><span class="chips-label">Perfil do curso</span>${[...c.codigo_curso].map(t => `<span class="type-chip${userCode.includes(t) ? ' shared' : ''}" title="${userCode.includes(t) ? 'Em comum com o seu perfil' : ''}">${TYPE_NAMES[t]}</span>`).join('')}${shared.length ? `<span class="chips-note">${shared.length === 1 ? '1 tipo' : shared.length + ' tipos'} em comum com você</span>` : ''}</div>` : ''}
+    ${c.dimensao_mais_proxima ? `<p class="small" style="margin:0"><b>No texto, mais parecido com:</b> ${esc(c.dimensao_mais_proxima)}</p>` : ''}
+    <details><summary>Por que este curso apareceu</summary>${parts.join('')}${dims}</details>
     <details><summary>Interesses, habilidades e carreira</summary>
       <p class="small"><b>Interesses:</b> ${esc(c.interesses_relacionados)}</p>
       <p class="small"><b>Habilidades:</b> ${esc(c.habilidades_relacionadas)}</p>
@@ -609,20 +737,150 @@ function renderResult(c, i) {
 $('recForm').onsubmit = async e => {
   e.preventDefault();
   const interesses = $('interesses').value.trim();
-  if (interesses.length < 5) return setMsg('recMsg', 'Escreva um pouco mais sobre você (pelo menos 5 caracteres).');
+  const usarPerfil = !!(state.profile?.diferenciado && $('useRiasec')?.checked);
+  if (!usarPerfil && interesses.length < 5) return setMsg('recMsg', 'Escreva um pouco mais sobre você (pelo menos 5 caracteres) ou responda ao inventário de interesses.');
+  if (interesses && interesses.length < 5) return setMsg('recMsg', 'Escreva um pouco mais (pelo menos 5 caracteres) ou deixe o texto em branco para usar só o perfil.');
   setMsg('recMsg', '');
   const btn = $('recSubmit'); btn.disabled = true; btn.textContent = 'Buscando…';
   $('results').innerHTML = '<div class="empty"><b>Comparando sua descrição com as ofertas…</b>Isso leva alguns segundos.</div>';
   try {
-    const data = await api('/recommend', { method: 'POST', body: { interesses, campus: $('campus').value, nivel: $('nivel').value, limite: Number($('limite').value) } });
+    const data = await api('/recommend', { method: 'POST', body: { interesses: interesses || null, usar_riasec: usarPerfil, campus: $('campus').value, nivel: $('nivel').value, limite: Number($('limite').value) } });
+    state.lastProfileCode = data.perfil_riasec?.codigo || '';
+    const how = { texto: 'da mais para a menos parecida com o que você escreveu', riasec: 'da mais para a menos alinhada ao seu perfil de interesses', hibrido: 'combinando o que você escreveu com o seu perfil de interesses' }[data.modo];
     $('results').innerHTML = data.resultados.length
-      ? `<p class="muted small" style="margin:0 0 12px">${nf.format(data.total_retornado)} oferta(s), da mais para a menos parecida com o que você escreveu.</p>` + data.resultados.map(renderResult).join('')
+      ? `<p class="muted small" style="margin:0 0 12px">${nf.format(data.total_retornado)} oferta(s), ${how}.</p>` + data.resultados.map(renderResult).join('')
       : '<div class="empty"><b>Nenhuma oferta com esses filtros</b>Tente “Todos” em campus ou nível.</div>';
   } catch (err) {
     if (err.status === 401) { state.aluno = null; state.next = 'recomendar'; location.hash = '#/entrar?perfil=aluno&aviso=1'; return; }
     $('results').innerHTML = emptyResults; setMsg('recMsg', err.message);
   } finally { btn.disabled = false; btn.textContent = 'Buscar cursos'; }
 };
+
+/* ---------- Perfil de interesses (RIASEC) ---------- */
+const TYPE_NAMES = { R: 'Realista', I: 'Investigativo', A: 'Artístico', S: 'Social', E: 'Empreendedor', C: 'Convencional' };
+const PER_PAGE = 6;
+const quiz = { data: null, page: 0, answers: {} };
+const draftKey = () => 'riasec_rascunho_' + (state.aluno?.email || '');
+
+async function loadProfile() {
+  try { state.profile = await api('/api/alunos/riasec'); } catch { state.profile = null; }
+}
+async function loadQuestionnaire() {
+  if (!quiz.data) quiz.data = await api('/api/riasec/questionario');
+  return quiz.data;
+}
+function saveDraft() { try { localStorage.setItem(draftKey(), JSON.stringify({ page: quiz.page, answers: quiz.answers })); } catch {} }
+function readDraft() { try { return JSON.parse(localStorage.getItem(draftKey()) || 'null'); } catch { return null; } }
+function clearDraft() { try { localStorage.removeItem(draftKey()); } catch {} }
+
+async function showProfileView(mode) {
+  for (const id of ['pfIntro', 'pfQuiz', 'pfResult']) $(id).hidden = true;
+  let data;
+  try { data = await loadQuestionnaire(); }
+  catch (err) { $('pfIntro').hidden = false; $('pfSource').textContent = 'Não foi possível carregar o questionário: ' + err.message; return; }
+  $('pfSource').textContent = data.fonte;
+  const draft = readDraft();
+  if (mode === 'quiz' || (!mode && !state.profile && draft)) {
+    quiz.answers = draft?.answers || {}; quiz.page = Math.min(draft?.page || 0, Math.ceil(data.itens.length / PER_PAGE) - 1);
+    $('pfQuiz').hidden = false; renderQuizPage(); return;
+  }
+  if (state.profile && mode !== 'intro') { $('pfResult').hidden = false; renderProfileResult(); return; }
+  $('pfIntro').hidden = false;
+}
+
+function renderQuizPage() {
+  const items = quiz.data.itens, pages = Math.ceil(items.length / PER_PAGE);
+  const slice = items.slice(quiz.page * PER_PAGE, (quiz.page + 1) * PER_PAGE);
+  $('pfInstr').textContent = quiz.data.instrucao;
+  $('pfItems').innerHTML = slice.map(it => `<fieldset class="likert-item" data-item="${esc(it.id)}">
+      <legend>${esc(it.texto)}</legend>
+      <div class="likert">${quiz.data.escala.map(e => `<label><input type="radio" name="q_${esc(it.id)}" value="${e.valor}" ${quiz.answers[it.id] === e.valor ? 'checked' : ''}><span>${esc(e.rotulo)}</span></label>`).join('')}</div>
+    </fieldset>`).join('');
+  $('pfStep').textContent = `Parte ${quiz.page + 1} de ${pages}`;
+  $('pfBack').hidden = quiz.page === 0;
+  $('pfNext').textContent = quiz.page === pages - 1 ? 'Ver meu perfil' : 'Próximo';
+  setMsg('pfMsg', '');
+  updateQuizProgress();
+}
+function updateQuizProgress() {
+  const total = quiz.data.itens.length, done = quiz.data.itens.filter(i => quiz.answers[i.id]).length;
+  $('pfCount').textContent = `${done} de ${total} respondidas`;
+  $('pfBar').style.width = (done / total * 100) + '%';
+}
+$('pfItems').addEventListener('change', e => {
+  const fs = e.target.closest('[data-item]'); if (!fs) return;
+  quiz.answers[fs.dataset.item] = Number(e.target.value);
+  fs.classList.remove('missing'); saveDraft(); updateQuizProgress();
+});
+$('pfBack').onclick = () => { quiz.page--; saveDraft(); renderQuizPage(); $('pfQuiz').scrollIntoView({ block: 'start' }); };
+$('pfStart').onclick = () => { quiz.answers = {}; quiz.page = 0; saveDraft(); showProfileView('quiz'); };
+$('pfRedo').onclick = () => { quiz.answers = {}; quiz.page = 0; saveDraft(); showProfileView('quiz'); };
+$('pfDelete').onclick = async () => {
+  if (!confirm('Apagar seu perfil de interesses? As recomendações voltarão a usar só o texto.')) return;
+  try { await api('/api/alunos/riasec', { method: 'DELETE' }); state.profile = null; clearDraft(); showProfileView('intro'); }
+  catch (err) { alert(err.message); }
+};
+$('pfQuiz').onsubmit = async e => {
+  e.preventDefault();
+  const items = quiz.data.itens, pages = Math.ceil(items.length / PER_PAGE);
+  const missing = items.slice(quiz.page * PER_PAGE, (quiz.page + 1) * PER_PAGE).filter(i => !quiz.answers[i.id]);
+  if (missing.length) {
+    missing.forEach(i => document.querySelector(`[data-item="${i.id}"]`)?.classList.add('missing'));
+    document.querySelector('.likert-item.missing')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    return setMsg('pfMsg', missing.length === 1 ? 'Falta responder 1 atividade desta parte.' : `Faltam responder ${missing.length} atividades desta parte.`);
+  }
+  if (quiz.page < pages - 1) { quiz.page++; saveDraft(); renderQuizPage(); $('pfQuiz').scrollIntoView({ block: 'start' }); return; }
+  const btn = $('pfNext'); btn.disabled = true; btn.textContent = 'Calculando…';
+  try {
+    state.profile = await api('/api/alunos/riasec', { method: 'POST', body: { respostas: quiz.answers } });
+    clearDraft(); showProfileView('result');
+  } catch (err) {
+    if (err.status === 401) { state.aluno = null; state.next = 'perfil'; location.hash = '#/entrar?perfil=aluno&aviso=1'; return; }
+    setMsg('pfMsg', err.message);
+  } finally { btn.disabled = false; }
+};
+
+function radarSVG(scores, code) {
+  const order = ['R', 'I', 'A', 'S', 'E', 'C'], cx = 210, cy = 150, R = 100;
+  const pt = (k, r) => { const a = (-90 + 60 * k) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
+  const poly = r => order.map((_, k) => pt(k, r).map(v => v.toFixed(1)).join(',')).join(' ');
+  const rings = [.25, .5, .75, 1].map(f => `<polygon class="ring" points="${poly(R * f)}"/>`).join('');
+  const axes = order.map((_, k) => { const [x, y] = pt(k, R); return `<line class="axis" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`; }).join('');
+  const shape = order.map((t, k) => pt(k, R * Math.max(.02, scores[t] || 0)).map(v => v.toFixed(1)).join(',')).join(' ');
+  const dots = order.map((t, k) => { const [x, y] = pt(k, R * Math.max(.02, scores[t] || 0)); return `<circle class="dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5"/>`; }).join('');
+  const labels = order.map((t, k) => {
+    const [x, y] = pt(k, R + 20), anchor = Math.abs(x - cx) < 5 ? 'middle' : x > cx ? 'start' : 'end';
+    return `<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="${anchor}" class="${code.includes(t) ? 'top' : ''}">${TYPE_NAMES[t]}</text>`;
+  }).join('');
+  const desc = order.map(t => `${TYPE_NAMES[t]} ${(1 + 4 * (scores[t] || 0)).toFixed(1).replace('.', ',')} de 5`).join('; ');
+  return `<svg class="radar" viewBox="0 0 420 300" role="img" aria-label="Gráfico do perfil de interesses: ${desc}">${rings}${axes}<polygon class="area" points="${shape}"/>${dots}${labels}</svg>`;
+}
+
+function renderProfileResult() {
+  const p = state.profile, types = quiz.data.tipos;
+  $('pfCode').textContent = p.codigo ? `${p.codigo} (${[...p.codigo].map(t => TYPE_NAMES[t]).join(' · ')})` : '—';
+  $('pfRadar').innerHTML = radarSVG(p.pontuacoes, p.codigo || '');
+  $('pfFlat').hidden = p.diferenciado;
+  const ranked = Object.entries(p.pontuacoes).sort((a, b) => b[1] - a[1]);
+  $('pfTypes').innerHTML = ranked.map(([t, v], i) => `<div class="type-row">
+      <header><b>${i < 3 && p.diferenciado ? `${i + 1}. ` : ''}${esc(types[t].nome)}</b><span class="muted small num">média ${(1 + 4 * v).toFixed(1).replace('.', ',')} de 5</span></header>
+      ${i < 3 ? `<p>${esc(types[t].descricao)}</p>` : ''}
+      <div class="track"><span style="width:${v * 100}%"></span></div></div>`).join('');
+}
+
+function renderRecProfile() {
+  const box = $('recProfile'), p = state.profile;
+  if (p && p.diferenciado) {
+    box.innerHTML = `<div class="profile-box"><div><small>Seu perfil de interesses</small><b>${[...p.codigo].map(t => TYPE_NAMES[t]).join(' · ')}</b></div>
+      <label class="check" style="margin:0"><input type="checkbox" id="useRiasec" checked> Combinar com meu perfil</label></div>`;
+    $('useRiasec').onchange = () => $('interessesOpt').hidden = !$('useRiasec').checked;
+    $('interessesOpt').hidden = false;
+  } else {
+    box.innerHTML = `<div class="profile-box"><div><small>Sugestões mais precisas</small>${p ? 'Seu perfil não diferenciou os tipos. Refaça o inventário.' : 'Responda ao inventário de interesses (cerca de 4 min).'}</div>
+      <a class="btn small" href="#/perfil">${p ? 'Refazer' : 'Responder'}</a></div>`;
+    $('interessesOpt').hidden = true;
+  }
+}
 
 /* ---------- Histórico e conta ---------- */
 async function loadHistory() {
@@ -698,6 +956,8 @@ async function loadDashboard(silent = false) {
     $('gTimeline').innerHTML = timeline(d.evolucao);
     $('gAreas').innerHTML = bars(d.areas);
     $('gCampi').innerHTML = bars(regioes);
+    $('gRiasecNote').textContent = `${nf.format(d.riasec.perfis)} estudante(s) responderam ao inventário. Todos os perfis, sem os filtros acima.`;
+    $('gRiasec').innerHTML = d.riasec.perfis ? bars(d.riasec.predominante.map(x => ({ name: x.nome, count: x.count }))) : '<p class="muted small" style="margin:0">Nenhum estudante respondeu ao inventário ainda.</p>';
     $('gCursos').innerHTML = d.cursos.length ? d.cursos.map((c, i) => `<tr><td class="num">${i + 1}</td><td>${esc(c.nome)}</td><td>${esc(c.campus)}</td><td class="num">${nf.format(c.count)}</td></tr>`).join('')
       : '<tr><td colspan="4" class="muted">Ainda não há recomendações registradas nesses filtros.</td></tr>';
     $('gConsultas').innerHTML = d.consultas.length ? d.consultas.map((c, i) => `<tr>
@@ -718,7 +978,9 @@ $('gConsultas').addEventListener('click', e => {
   const c = state.dashboard.consultas[+b.dataset.consulta];
   const tr = document.createElement('tr'); tr.className = 'detail-row';
   tr.innerHTML = `<td colspan="7"><div class="detail-grid">
-    <div style="grid-column:1/-1"><small>Interesses declarados</small>${esc(c.interesses)}</div>
+    <div><small>Modo da recomendação</small>${esc({ texto: 'Só texto', riasec: 'Só perfil RIASEC', hibrido: 'Híbrido (texto + perfil)' }[c.metodo] || c.metodo)}</div>
+    <div><small>Perfil RIASEC</small>${esc(c.perfil || '—')}</div>
+    <div style="grid-column:1/-1"><small>Interesses declarados</small>${esc(c.interesses || '(não escreveu texto)')}</div>
     <div style="grid-column:1/-1"><small>Cursos sugeridos (similaridade)</small><div class="chips" style="margin-top:4px">${c.resultados.map((r, i) => `<span class="chip">${i + 1}. ${esc(r.nome)} · ${esc(r.campus)} · <span class="num">${sf.format(r.score)}</span></span>`).join('')}</div></div></div></td>`;
   row.after(tr); b.setAttribute('aria-expanded', 'true'); b.textContent = 'Fechar';
 });
@@ -802,6 +1064,24 @@ $('sugForm').onsubmit = async e => {
   } finally { btn.disabled = false; }
 };
 
+/* ---------- Hexágono do Início (ilustrativo) ---------- */
+(function drawHeroHex() {
+  const order = ['R', 'I', 'A', 'S', 'E', 'C'], cx = 240, cy = 165, R = 112;
+  const sample = { R: .55, I: .9, A: .45, S: .7, E: .4, C: .6 };
+  const pt = (k, r) => { const a = (-90 + 60 * k) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
+  const poly = r => order.map((_, k) => pt(k, r).map(v => v.toFixed(1)).join(',')).join(' ');
+  let svg = [.33, .66, 1].map(f => `<polygon class="ring" points="${poly(R * f)}"/>`).join('');
+  svg += order.map((_, k) => { const [x, y] = pt(k, R); return `<line class="axis" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`; }).join('');
+  svg += `<polygon class="shape" points="${order.map((t, k) => pt(k, R * sample[t]).map(v => v.toFixed(1)).join(',')).join(' ')}"/>`;
+  svg += order.map((t, k) => { const [x, y] = pt(k, R * sample[t]); return `<circle class="node" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"/>`; }).join('');
+  svg += order.map((t, k) => {
+    const [x, y] = pt(k, R + 24), anchor = Math.abs(x - cx) < 5 ? 'middle' : x > cx ? 'start' : 'end';
+    const dy = y < cy - 20 ? -2 : y > cy + 20 ? 12 : 5;
+    return `<text x="${x.toFixed(1)}" y="${(y + dy).toFixed(1)}" text-anchor="${anchor}"><tspan class="letter">${t}</tspan> ${TYPE_NAMES[t]}</text>`;
+  }).join('');
+  $('heroHex').innerHTML = svg;
+})();
+
 /* ---------- Inicialização ---------- */
 async function loadMetadata() {
   for (let attempt = 0; attempt < 6; attempt++) {
@@ -828,6 +1108,7 @@ async function loadMetadata() {
   const [aluno, gestor] = await Promise.allSettled([api('/api/alunos/me'), api('/api/gestao/me')]);
   state.aluno = aluno.status === 'fulfilled' ? aluno.value : null;
   state.gestor = gestor.status === 'fulfilled' ? gestor.value : null;
+  if (state.aluno) await loadProfile();
   window.addEventListener('hashchange', route);
   route();
   loadMetadata();
