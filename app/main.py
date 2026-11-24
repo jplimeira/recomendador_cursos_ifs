@@ -41,9 +41,10 @@ RIASEC_COURSES_FILE = os.getenv('RIASEC_COURSES_FILE', str(ROOT / 'data' / 'rias
 # Peso do perfil RIASEC no modo híbrido (0 = só texto, 1 = só perfil). Calibrar com scripts/evaluate.py.
 RIASEC_WEIGHT = min(max(float(os.getenv('RIASEC_WEIGHT', '0.5')), 0.0), 1.0)
 # Abaixo desta similaridade de texto, nenhum curso do catálogo é considerado próximo do que o estudante descreveu.
-# Valor inicial observado com o modelo real (cursos pertinentes: 0,52 a 0,64; sem curso no catálogo: até 0,27);
+# Valor inicial observado com o modelo real (cursos pertinentes: 0,49 a 0,64; sem curso no catálogo, como
+# saúde e moda: 0,27 e 0,37);
 # deve ser recalibrado com os casos avaliados por especialistas.
-LOW_AFFINITY_THRESHOLD = float(os.getenv('LOW_AFFINITY_THRESHOLD', '0.30'))
+LOW_AFFINITY_THRESHOLD = float(os.getenv('LOW_AFFINITY_THRESHOLD', '0.40'))
 MAX_CONCURRENT_INFERENCES = max(1, int(os.getenv('MAX_CONCURRENT_INFERENCES', '2')))
 inference_slots = BoundedSemaphore(MAX_CONCURRENT_INFERENCES)
 courses = []

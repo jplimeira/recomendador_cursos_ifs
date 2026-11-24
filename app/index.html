@@ -551,8 +551,15 @@ const fmtDate = (v, withTime = true) => { const d = new Date(v); return isNaN(d)
 function setMsg(id, text, kind = 'error') { const el = $(id); el.className = 'msg ' + kind; el.textContent = text || ''; }
 
 async function api(path, { method = 'GET', body } = {}) {
-  const res = await fetch(path, { method, credentials: 'same-origin', cache: 'no-store',
-    headers: body ? { 'Content-Type': 'application/json' } : {}, ...(body ? { body: JSON.stringify(body) } : {}) });
+  let res;
+  try {
+    res = await fetch(path, { method, credentials: 'same-origin', cache: 'no-store',
+      headers: body ? { 'Content-Type': 'application/json' } : {}, ...(body ? { body: JSON.stringify(body) } : {}) });
+  } catch {
+    // O navegador nem chegou ao servidor (servidor desligado, reiniciando ou sem internet): "Failed to fetch".
+    const err = new Error('Não foi possível conectar ao sistema. Ele pode estar desligado ou reiniciando: aguarde alguns segundos e tente de novo.');
+    err.status = 0; err.network = true; throw err;
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const d = data.detail;
