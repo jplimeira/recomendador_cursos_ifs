@@ -9,7 +9,7 @@ web
 ## Users
 
 - **Primário — futuros alunos:** pessoas de fora do Instituto Federal de Sergipe (IFS), muitas vezes concluindo o ensino médio, que ainda não sabem qual curso ou campus escolher. Descrevem seus interesses em linguagem natural e querem uma lista curta de ofertas para considerar na inscrição.
-- **Secundário — gestores do IFS:** equipe de campus ou reitoria que usa o painel `/gestao` para entender os interesses declarados pelos estudantes e apoiar o planejamento de novas ofertas de cursos.
+- **Secundário — gestores do IFS:** equipe de campus ou reitoria que usa a área de gestão (aba Gestão da interface) para entender os interesses declarados pelos estudantes e apoiar o planejamento de novas ofertas de cursos.
 
 ## Product Purpose
 
@@ -25,13 +25,14 @@ Recomendação semântica por oferta (curso + campus + nível), não por palavra
 
 - Protótipo acadêmico. Usa o nome e o catálogo do IFS, mas **não é um sistema oficial do instituto**.
 - Estudante: acessa `/`, cria conta (nome, email, senha, aceite de privacidade), descreve interesses, filtra por campus e nível, vê resultados e o próprio histórico, e pode excluir a conta.
-- Gestão: `/gestao`, protegido por HTTP Basic, com dashboard atualizado a cada 30 s e exportação CSV das consultas.
+- Interface única em `/` com abas por perfil (navegação por `#/rota`): visitante (Início, Entrar), estudante (Encontrar cursos, Meu histórico, Minha conta) e gestor (Painel, Consultas, Cursos). Aluno e gestor podem estar conectados ao mesmo tempo.
+- Gestão: login de gestor por formulário com sessão em cookie HttpOnly (8 h); dashboard atualizado a cada 30 s e exportação CSV. `/gestao` redireciona para a aba; HTTP Basic segue aceito na API para scripts.
 - Execução local via Docker Compose; modelo `paraphrase-multilingual-MiniLM-L12-v2` em CPU, baixado na primeira inicialização.
 
 ## Capabilities and Constraints
 
 - Catálogo: 46 ofertas em `data/cursos_ifs.json`, 9 campi (Aracaju, Estância, Glória, Itabaiana, Lagarto, Propriá, Socorro, São Cristóvão, Tobias Barreto), níveis Técnico Subsequente e Graduação.
-- Stack existente: FastAPI (`app/main.py`), páginas HTML estáticas (`app/index.html`, `app/gestao.html`), SQLite, NumPy.
+- Stack existente: FastAPI (`app/main.py`), página única `app/index.html` (HTML/CSS/JS sem framework), logo em `app/static/`, SQLite, NumPy.
 - Entrada de interesses limitada a 2.000 caracteres; limite de 1 a 46 resultados; até duas inferências simultâneas (HTTP 503 com `Retry-After` quando ocupado); `/health` retorna 503 até o modelo carregar.
 - **O score é similaridade, não probabilidade nem percentual de compatibilidade.** Nenhuma interface pode apresentá-lo como “% de match”.
 - O ranking de cursos na gestão indica frequência de aparição nas recomendações, não demanda comprovada.

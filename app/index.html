@@ -1,224 +1,695 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Recomendador de Cursos | IFS</title>
-  <style>
-    :root { font-family: Inter, system-ui, Arial, sans-serif; color: #172033; background: #f4f6fa; }
-    * { box-sizing: border-box; }
-    body { margin: 0; }
-    header { background: #123b2a; color: white; padding: 26px 20px; }
-    header .wrap, main { max-width: 1050px; margin: auto; }
-    h1 { margin: 0 0 7px; font-size: 1.65rem; }
-    header p { margin: 0; color: #d9e9df; }
-    main { padding: 24px 18px 50px; }
-    .panel { background: white; border: 1px solid #e1e6ee; border-radius: 12px; padding: 20px; box-shadow: 0 3px 12px #1720330a; }
-    label { display: block; font-weight: 650; margin: 0 0 8px; }
-    textarea, select, input { width: 100%; border: 1px solid #cbd3df; border-radius: 8px; padding: 11px 12px; font: inherit; background: white; }
-    textarea { min-height: 130px; resize: vertical; }
-    .filters { display: grid; grid-template-columns: 1fr 1fr 130px; gap: 12px; margin-top: 14px; }
-    button { border: 0; background: #176b45; color: white; font: inherit; font-weight: 700; padding: 12px 18px; border-radius: 8px; cursor: pointer; margin-top: 16px; }
-    button:disabled { opacity: .55; cursor: wait; }
-    .muted { color: #667085; font-size: .9rem; }
-    #status { margin: 16px 0; }
-    .result { background: white; border: 1px solid #e1e6ee; border-radius: 10px; padding: 17px; margin: 12px 0; }
-    .result h3 { margin: 0 0 8px; }
-    .meta { color: #536174; font-size: .9rem; margin-bottom: 10px; }
-    .score { float: right; color: #176b45; font-weight: 750; font-variant-numeric: tabular-nums; }
-    details { margin-top: 12px; }
-    summary { cursor: pointer; color: #176b45; font-weight: 650; }
-    .barrow { display: grid; grid-template-columns: 190px 1fr 55px; gap: 9px; align-items: center; margin: 8px 0; font-size: .85rem; }
-    .bar { background: #edf0f4; border-radius: 8px; height: 8px; overflow: hidden; }
-    .bar > span { display: block; height: 100%; background: #39966b; }
-    .description { line-height: 1.5; }
-    .error { color: #b42318; }
-    @media (max-width: 650px) { .filters { grid-template-columns: 1fr; } .barrow { grid-template-columns: 1fr 1fr 45px; } .score { float: none; display: block; margin-bottom: 6px; } }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recomendador de Cursos | IFS</title>
+<link rel="icon" href="/static/logo-ifs.png">
+<style>
+:root {
+  --green: #176b45; --green-strong: #0f5434; --green-dark: #123f36; --green-tint: #e6f2eb; --green-tint-2: #f1f7f3;
+  --bg: #f4f6f5; --surface: #ffffff; --ink: #17231f; --muted: #56655e; --line: #dce5df; --line-strong: #c4d1c9;
+  --danger: #b42318; --danger-tint: #fdecea; --warn-tint: #fff6e0;
+  --radius: 10px; --shadow: 0 1px 2px rgba(18, 63, 54, .06), 0 6px 18px rgba(18, 63, 54, .06);
+  --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.5; }
+::selection { background: #bfe0cc; color: var(--ink); }
+:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-radius: 4px; }
+a { color: var(--green); text-underline-offset: 3px; }
+h1, h2, h3 { line-height: 1.2; letter-spacing: -.02em; text-wrap: balance; }
+button, input, select, textarea { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Barra superior e abas */
+.topbar { position: sticky; top: 0; z-index: 10; background: var(--surface); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 1240px; margin: auto; padding: 10px 20px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0 24px; }
+.topbar-inner .brand { order: 1; padding-bottom: 6px; }
+.topbar-inner .session { order: 2; margin-left: auto; padding-bottom: 6px; }
+.topbar-inner .tabs { order: 3; flex-basis: 100%; min-height: 44px; margin: 0 -14px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); flex: none; }
+.brand img { width: 28px; height: 38px; object-fit: contain; }
+.brand b { display: block; font-size: 15px; letter-spacing: -.01em; }
+.brand small { display: block; color: var(--muted); font-size: 12px; }
+.tabs { display: flex; gap: 2px; align-self: stretch; overflow-x: auto; scrollbar-width: none; flex: 1; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { display: flex; align-items: center; padding: 0 14px; color: var(--muted); text-decoration: none; font-weight: 600; font-size: 14px; white-space: nowrap; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab:hover { color: var(--ink); }
+.tab[aria-current="page"] { color: var(--green); border-bottom-color: var(--green); }
+.tab-group { display: flex; align-items: center; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 0 6px 0 16px; border-left: 1px solid var(--line); margin-left: 8px; }
+.session { display: flex; align-items: center; gap: 10px; flex: none; font-size: 13px; }
+.who { text-align: right; line-height: 1.25; }
+.who small { display: block; color: var(--muted); }
+
+/* Layout geral */
+main { max-width: 1240px; margin: auto; padding: 28px 20px 56px; }
+.view-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 4px 0 20px; }
+.view-head h1 { font-size: 26px; margin: 0 0 4px; }
+.view-head p { margin: 0; color: var(--muted); max-width: 68ch; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+.panel h2 { font-size: 17px; margin: 0 0 4px; }
+.panel h3 { font-size: 15px; margin: 0 0 12px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.stack > * + * { margin-top: 16px; }
+
+/* Botões e campos */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); font-weight: 650; font-size: 14px; padding: 9px 15px; border-radius: 8px; cursor: pointer; text-decoration: none; transition: background-color .15s, border-color .15s; }
+.btn:hover { background: var(--green-tint-2); border-color: var(--green); }
+.btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
+.btn.primary:hover { background: var(--green-strong); border-color: var(--green-strong); }
+.btn.danger { color: var(--danger); border-color: #e7b4ae; }
+.btn.danger:hover { background: var(--danger-tint); border-color: var(--danger); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); padding: 7px 10px; }
+.btn.ghost:hover { color: var(--ink); background: var(--green-tint-2); }
+.btn.small { padding: 6px 11px; font-size: 13px; }
+.btn:disabled { opacity: .55; cursor: progress; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-weight: 650; font-size: 13px; }
+.field .hint { color: var(--muted); font-size: 12px; }
+input[type=text], input[type=email], input[type=password], input[type=search], select, textarea {
+  width: 100%; border: 1px solid var(--line-strong); border-radius: 8px; padding: 10px 12px; background: var(--surface); font-size: 14px; }
+input::placeholder, textarea::placeholder { color: #6d7a73; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(23, 107, 69, .15); }
+textarea { min-height: 140px; resize: vertical; line-height: 1.55; }
+.grid { display: grid; gap: 14px; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; }
+.check input { margin-top: 3px; accent-color: var(--green); }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.msg { font-size: 14px; padding: 10px 12px; border-radius: 8px; }
+.msg.error { background: var(--danger-tint); color: var(--danger); }
+.msg.ok { background: var(--green-tint); color: var(--green-strong); }
+.msg.info { background: var(--warn-tint); color: #6b4a00; }
+.msg:empty { display: none; }
+
+/* Segmentado (aluno / gestor, entrar / criar conta) */
+.segmented { display: inline-flex; padding: 3px; background: var(--green-tint-2); border: 1px solid var(--line); border-radius: 9px; gap: 2px; }
+.segmented button { border: 0; background: transparent; padding: 7px 14px; border-radius: 7px; font-weight: 650; font-size: 14px; color: var(--muted); cursor: pointer; }
+.segmented button[aria-pressed="true"] { background: var(--surface); color: var(--green-strong); box-shadow: 0 1px 2px rgba(18, 63, 54, .12); }
+
+/* Início */
+.intro { display: grid; grid-template-columns: 1.15fr .85fr; gap: 40px; align-items: center; padding: 28px 0 36px; }
+.intro h1 { font-size: clamp(30px, 4.2vw, 46px); margin: 0 0 14px; letter-spacing: -.03em; }
+.intro p.lead { font-size: 17px; color: var(--muted); max-width: 56ch; margin: 0 0 24px; }
+.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 34px 1fr; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
+.steps li:first-child { border-top: 0; padding-top: 0; }
+.steps li::before { content: counter(s); width: 28px; height: 28px; border-radius: 50%; background: var(--green-tint); color: var(--green-strong); font-weight: 750; display: grid; place-items: center; font-size: 13px; }
+.steps b { display: block; }
+.steps span { color: var(--muted); font-size: 14px; }
+.facts { display: flex; gap: 28px; flex-wrap: wrap; padding: 18px 0 0; border-top: 1px solid var(--line); }
+.facts div b { display: block; font-size: 22px; color: var(--green-strong); }
+.facts div span { font-size: 13px; color: var(--muted); }
+
+/* Entrar */
+.auth { max-width: 460px; margin: 8px auto 0; }
+.auth .segmented { width: 100%; }
+.auth .segmented button { flex: 1; }
+
+/* Recomendar */
+.rec-layout { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 20px; align-items: start; }
+.rec-form { position: sticky; top: 124px; }
+.filters-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.result { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; }
+.result + .result { margin-top: 12px; }
+.result-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.result h3 { margin: 0; font-size: 17px; }
+.result .meta { color: var(--muted); font-size: 13px; margin: 4px 0 10px; }
+.result .desc { margin: 0 0 10px; max-width: 75ch; }
+.score { flex: none; font-size: 12px; color: var(--muted); text-align: right; }
+.score b { display: block; font-size: 16px; color: var(--green-strong); }
+details { margin-top: 8px; }
+summary { cursor: pointer; color: var(--green); font-weight: 650; font-size: 14px; width: fit-content; }
+.dim { display: grid; grid-template-columns: 190px 1fr 56px; gap: 10px; align-items: center; font-size: 13px; margin: 8px 0; }
+.track { height: 8px; background: #e9eeeb; border-radius: 6px; overflow: hidden; }
+.track > span { display: block; height: 100%; background: #2f8a5d; border-radius: 6px; }
+.empty { border: 1px dashed var(--line-strong); border-radius: var(--radius); padding: 32px 24px; text-align: center; color: var(--muted); background: var(--surface); }
+.empty b { display: block; color: var(--ink); margin-bottom: 4px; }
+
+/* Histórico */
+.hist-item { padding: 16px 0; border-top: 1px solid var(--line); }
+.hist-item:first-child { border-top: 0; padding-top: 0; }
+.hist-item .when { font-size: 13px; color: var(--muted); }
+.hist-item p { margin: 6px 0 8px; max-width: 75ch; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--green-tint); color: var(--green-strong); font-weight: 600; }
+
+/* Gestão */
+.g-filters { display: grid; grid-template-columns: repeat(4, 1fr) auto; gap: 12px; align-items: end; margin-bottom: 16px; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+.kpi span { font-size: 13px; color: var(--muted); }
+.kpi b { display: block; font-size: 26px; letter-spacing: -.02em; }
+.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.charts .wide { grid-column: 1 / -1; }
+.bars { display: flex; flex-direction: column; gap: 9px; }
+.bar { display: grid; grid-template-columns: minmax(110px, 200px) 1fr 44px; gap: 10px; align-items: center; font-size: 13px; }
+.bar .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.bar .val { text-align: right; font-variant-numeric: tabular-nums; }
+.cols { display: flex; align-items: flex-end; gap: 3px; height: 150px; padding-top: 8px; border-bottom: 1px solid var(--line); }
+.cols div { flex: 1; background: #2f8a5d; border-radius: 3px 3px 0 0; min-height: 2px; position: relative; }
+.cols div.zero { background: #e3eae6; }
+.cols-axis { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px; }
+th, td { padding: 11px 14px; text-align: left; border-top: 1px solid var(--line); vertical-align: top; }
+thead th { border-top: 0; background: var(--green-tint-2); color: var(--muted); font-weight: 700; font-size: 12px; }
+td.num, th.num { text-align: right; }
+tr.detail-row td { background: var(--green-tint-2); }
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.detail-grid small { display: block; color: var(--muted); font-size: 12px; }
+.clip { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.toolbar input { max-width: 320px; }
+.updated { font-size: 12px; color: var(--muted); }
+
+footer { max-width: 1240px; margin: auto; padding: 18px 20px 32px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); }
+
+@media (max-width: 980px) {
+  .intro, .rec-layout { grid-template-columns: 1fr; }
+  .rec-form { position: static; }
+  .g-filters { grid-template-columns: 1fr 1fr; }
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .charts { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .topbar-inner { padding: 8px 14px 0; }
+  .who { display: none; }
+  main { padding: 20px 14px 44px; }
+  .dim { grid-template-columns: 1fr 1fr 48px; }
+  .filters-row { grid-template-columns: 1fr; }
+}
+</style>
 </head>
 <body>
-<header><div class="wrap">
-  <h1>Recomendador de Cursos do IFS</h1>
-  <p>Informe seus interesses para identificar ofertas de cursos semanticamente relacionadas.</p>
-</div></header>
-<main>
-  <section class="panel" id="authPanel" style="margin-bottom:16px">
-    <h2>Área do estudante</h2>
-    <div id="authForms">
-      <div class="filters" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
-        <div><label for="studentName">Nome (para cadastro)</label><input id="studentName" autocomplete="name"></div>
-        <div><label for="studentEmail">Email</label><input id="studentEmail" type="email" autocomplete="email"></div>
-        <div><label for="studentPassword">Senha (mínimo 12 caracteres)</label><input id="studentPassword" type="password" autocomplete="current-password"></div>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#/inicio" aria-label="Início do Recomendador de Cursos">
+      <img src="/static/logo-ifs.png" alt="">
+      <span><b>Recomendador de Cursos</b><small>IFS · projeto acadêmico</small></span>
+    </a>
+    <nav class="tabs" id="tabs" aria-label="Seções"></nav>
+    <div class="session" id="session"></div>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+  <!-- Início -->
+  <section data-view="inicio">
+    <div class="intro">
+      <div>
+        <h1>Descubra cursos do IFS a partir do que você gosta</h1>
+        <p class="lead">Escreva com suas palavras seus interesses, habilidades e planos. O sistema compara a sua descrição com as ofertas de cursos dos campi do IFS e sugere as mais próximas.</p>
+        <div class="actions">
+          <a class="btn primary" id="ctaStart" href="#/entrar">Começar agora</a>
+          <a class="btn" href="#/entrar?perfil=gestor">Acesso da gestão</a>
+        </div>
       </div>
-      <p class="muted">Suas consultas e recomendações ficarão associadas à sua conta e poderão ser visualizadas pela gestão autorizada. Não inclua dados sensíveis na descrição dos interesses. Você pode excluir sua conta e seu histórico.</p>
-      <label><input type="checkbox" id="privacyConsent" style="width:auto"> Li e concordo com o tratamento dos dados para recomendação e análise institucional, conforme o aviso acima.</label>
-      <button type="button" onclick="studentAuth('login')">Entrar</button>
-      <button type="button" onclick="studentAuth('cadastro')">Criar conta</button>
+      <div class="panel">
+        <h2>Como funciona</h2>
+        <p class="muted small" style="margin:0 0 14px">Leva poucos minutos.</p>
+        <ol class="steps">
+          <li><div><b>Crie sua conta</b><span>Nome, email e senha. Você pode excluí-la quando quiser.</span></div></li>
+          <li><div><b>Descreva seus interesses</b><span>Do que gosta, o que sabe fazer e o que quer para o futuro.</span></div></li>
+          <li><div><b>Compare as ofertas</b><span>Veja curso, campus e nível, e por que cada um apareceu.</span></div></li>
+        </ol>
+      </div>
     </div>
-    <div id="authLogged" hidden><p id="studentWelcome"></p><button type="button" onclick="showHistory()">Meu histórico</button> <button type="button" onclick="logoutStudent()">Sair</button> <button type="button" onclick="deleteStudent()" style="background:#a32d2d">Excluir minha conta</button></div>
-    <p id="authStatus" role="status"></p>
-    <div id="studentHistory"></div>
+    <div class="facts" id="facts"></div>
   </section>
-  <section class="panel" id="recommendPanel" hidden>
-    <label for="interesses">Descrição dos interesses</label>
-    <textarea id="interesses" placeholder="Ex.: Tenho interesse em tecnologia, programação, inteligência artificial e criação de soluções digitais..."></textarea>
-    <div class="filters">
-      <div><label for="campus">Campus</label><select id="campus"><option>Todos</option></select></div>
-      <div><label for="nivel">Nível</label><select id="nivel"><option>Todos</option></select></div>
-      <div><label for="limite">Resultados</label><select id="limite"><option>5</option><option selected>10</option><option>20</option><option>46</option></select></div>
+
+  <!-- Entrar -->
+  <section data-view="entrar" hidden>
+    <div class="auth stack">
+      <div class="view-head" style="margin-bottom:4px"><div><h1>Entrar</h1><p>Escolha como você vai acessar o sistema.</p></div></div>
+      <div class="segmented" role="group" aria-label="Tipo de acesso">
+        <button type="button" data-role="aluno" aria-pressed="true">Sou estudante</button>
+        <button type="button" data-role="gestor" aria-pressed="false">Sou gestor</button>
+      </div>
+      <p class="msg info" id="authNotice"></p>
+
+      <form class="panel grid" id="studentForm" novalidate>
+        <div class="segmented" role="group" aria-label="Entrar ou criar conta" style="justify-self:start">
+          <button type="button" data-mode="login" aria-pressed="true">Já tenho conta</button>
+          <button type="button" data-mode="cadastro" aria-pressed="false">Criar conta</button>
+        </div>
+        <div class="field" data-only="cadastro" hidden><label for="studentName">Nome</label><input type="text" id="studentName" autocomplete="name"></div>
+        <div class="field"><label for="studentEmail">Email</label><input type="email" id="studentEmail" autocomplete="email" required></div>
+        <div class="field"><label for="studentPassword">Senha</label><input type="password" id="studentPassword" autocomplete="current-password" required><span class="hint" data-only="cadastro" hidden>Mínimo de 12 caracteres.</span></div>
+        <div data-only="cadastro" hidden class="grid" style="gap:10px">
+          <p class="muted small" style="margin:0">Suas consultas e recomendações ficam associadas à sua conta e podem ser vistas pela gestão autorizada. Não inclua dados sensíveis na descrição. Você pode excluir sua conta e seu histórico a qualquer momento.</p>
+          <label class="check"><input type="checkbox" id="privacyConsent"> Li e concordo com o tratamento dos meus dados para recomendação e análise institucional.</label>
+        </div>
+        <p class="msg" id="studentMsg" role="status"></p>
+        <button class="btn primary" type="submit" id="studentSubmit">Entrar</button>
+      </form>
+
+      <form class="panel grid" id="managerForm" hidden novalidate>
+        <div><h2>Acesso da gestão</h2><p class="muted small" style="margin:0">Use o usuário e a senha definidos para a gestão no arquivo <code>.env</code>.</p></div>
+        <div class="field"><label for="managerUser">Usuário</label><input type="text" id="managerUser" autocomplete="username" required></div>
+        <div class="field"><label for="managerPassword">Senha</label><input type="password" id="managerPassword" autocomplete="current-password" required></div>
+        <p class="msg" id="managerMsg" role="status"></p>
+        <button class="btn primary" type="submit" id="managerSubmit">Entrar na gestão</button>
+      </form>
     </div>
-    <button id="submit" onclick="recommend()">Buscar cursos recomendados</button>
-    <p class="muted">Processamento sem GPU. A primeira inicialização pode demorar enquanto o modelo é baixado.</p>
   </section>
-  <div id="status" class="muted"></div>
-  <section id="results"></section>
+
+  <!-- Recomendar -->
+  <section data-view="recomendar" hidden>
+    <div class="view-head"><div><h1>Encontrar cursos</h1><p>Quanto mais você contar sobre seus interesses, habilidades e objetivos, melhores ficam as sugestões.</p></div></div>
+    <div class="rec-layout">
+      <form class="panel grid rec-form" id="recForm" novalidate>
+        <div class="field">
+          <label for="interesses">Sobre você</label>
+          <textarea id="interesses" maxlength="2000" placeholder="Ex.: Gosto de tecnologia e de resolver problemas com lógica. Tenho facilidade com matemática e quero trabalhar criando aplicativos."></textarea>
+          <span class="hint"><span id="charCount" class="num">0</span>/2000 caracteres</span>
+        </div>
+        <div class="filters-row">
+          <div class="field"><label for="campus">Campus</label><select id="campus"><option value="Todos">Todos</option></select></div>
+          <div class="field"><label for="nivel">Nível</label><select id="nivel"><option value="Todos">Todos</option></select></div>
+        </div>
+        <div class="field"><label for="limite">Quantidade de sugestões</label>
+          <select id="limite"><option>5</option><option selected>10</option><option>20</option><option value="46">Todas</option></select></div>
+        <p class="msg" id="recMsg" role="status"></p>
+        <button class="btn primary" type="submit" id="recSubmit">Buscar cursos</button>
+        <p class="muted small" style="margin:0">A pontuação indica semelhança entre textos, usada só para ordenar. Não é porcentagem de compatibilidade.</p>
+      </form>
+      <div id="results" aria-live="polite">
+        <div class="empty"><b>Suas sugestões aparecem aqui</b>Descreva seus interesses e clique em “Buscar cursos”.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Histórico -->
+  <section data-view="historico" hidden>
+    <div class="view-head"><div><h1>Meu histórico</h1><p>Suas consultas anteriores e os cursos sugeridos em cada uma.</p></div></div>
+    <div class="panel" id="historyList"></div>
+  </section>
+
+  <!-- Conta -->
+  <section data-view="conta" hidden>
+    <div class="view-head"><div><h1>Minha conta</h1><p>Seus dados e o controle sobre eles.</p></div></div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:start">
+      <div class="panel stack">
+        <h2>Dados cadastrados</h2>
+        <div class="detail-grid" id="accountData"></div>
+        <button class="btn" type="button" data-action="logout-aluno">Sair da conta</button>
+      </div>
+      <div class="panel stack">
+        <h2>Privacidade</h2>
+        <p class="muted small" style="margin:0">Guardamos seu nome, email, a senha cifrada, a data do aceite e o texto de cada consulta com os cursos sugeridos. Não guardamos IP nem dados do dispositivo.</p>
+        <p class="msg" id="accountMsg" role="status"></p>
+        <button class="btn danger" type="button" id="deleteAccount">Excluir conta e histórico</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gestão (visão geral, consultas, cursos) -->
+  <section data-view="gestao" hidden>
+    <div class="view-head">
+      <div><h1 id="gTitle">Painel da gestão</h1><p id="gDesc">Interesses declarados pelos estudantes e cursos que mais aparecem nas recomendações.</p></div>
+      <div class="actions"><span class="updated" id="gUpdated"></span><button class="btn" type="button" id="gRefresh">Atualizar</button><button class="btn primary" type="button" id="gExport">Exportar CSV</button></div>
+    </div>
+    <form class="panel g-filters" id="gFilters">
+      <div class="field"><label for="gPeriod">Período</label><select id="gPeriod"><option value="0">Todo o período</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="180">Últimos 6 meses</option><option value="365">Últimos 12 meses</option></select></div>
+      <div class="field"><label for="gCampus">Campus</label><select id="gCampus"><option value="all">Todos</option></select></div>
+      <div class="field"><label for="gNivel">Nível</label><select id="gNivel"><option value="all">Todos</option></select></div>
+      <div class="field"><label for="gArea">Área do 1º curso</label><select id="gArea"><option value="all">Todas</option></select></div>
+      <button class="btn primary" type="submit">Aplicar</button>
+    </form>
+    <p class="msg" id="gMsg" role="status"></p>
+
+    <div data-sub="visao">
+      <div class="kpis" id="gKpis"></div>
+      <div class="charts">
+        <div class="panel wide"><h3>Consultas por dia</h3><div id="gTimeline"></div></div>
+        <div class="panel"><h3>Áreas do curso mais indicado</h3><div class="bars" id="gAreas"></div></div>
+        <div class="panel"><h3>Consultas por campus escolhido</h3><div class="bars" id="gCampi"></div></div>
+      </div>
+      <p class="muted small">Contagens vêm só das consultas registradas. A frequência de um curso nas recomendações não comprova demanda por uma nova oferta.</p>
+    </div>
+
+    <div data-sub="consultas" hidden>
+      <div class="toolbar">
+        <input type="search" id="gSearch" placeholder="Buscar no texto dos interesses ou no curso" aria-label="Buscar consultas">
+        <button class="btn" type="button" id="gSearchBtn">Buscar</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Estudante</th><th>Data</th><th>Campus</th><th>Nível</th><th>Interesses</th><th>1º curso sugerido</th><th></th></tr></thead>
+        <tbody id="gConsultas"></tbody>
+      </table></div>
+      <p class="muted small">Contém dados pessoais. Exiba e exporte somente para pessoas autorizadas (LGPD).</p>
+    </div>
+
+    <div data-sub="cursos" hidden>
+      <div class="table-wrap"><table>
+        <thead><tr><th class="num">#</th><th>Curso</th><th>Campus</th><th class="num">Aparições nas recomendações</th></tr></thead>
+        <tbody id="gCursos"></tbody>
+      </table></div>
+    </div>
+  </section>
 </main>
+
+<footer>Protótipo acadêmico sobre o catálogo do Instituto Federal de Sergipe. Não é um canal oficial do IFS. As sugestões apoiam a reflexão e não substituem orientação educacional.</footer>
+
 <script>
-let loggedStudent = null;
-async function authRequest(path, method='GET', body) {
-  const response = await fetch(path, {method, credentials:'same-origin', headers: {'Content-Type':'application/json'}, ...(body ? {body:JSON.stringify(body)} : {})});
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const detail = data.detail;
-    const message = typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(e => e.msg || 'Campo inválido').join('; ') : 'Não foi possível concluir a operação.';
-    throw new Error(message);
+const $ = id => document.getElementById(id);
+const state = { aluno: null, gestor: null, metadata: null, dashboard: null, role: 'aluno', mode: 'login', next: null };
+const nf = new Intl.NumberFormat('pt-BR');
+const sf = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtDate = (v, withTime = true) => { const d = new Date(v); return isNaN(d) ? '—' : withTime ? d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : d.toLocaleDateString('pt-BR'); };
+
+function setMsg(id, text, kind = 'error') { const el = $(id); el.className = 'msg ' + kind; el.textContent = text || ''; }
+
+async function api(path, { method = 'GET', body } = {}) {
+  const res = await fetch(path, { method, credentials: 'same-origin', cache: 'no-store',
+    headers: body ? { 'Content-Type': 'application/json' } : {}, ...(body ? { body: JSON.stringify(body) } : {}) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const d = data.detail;
+    const message = typeof d === 'string' ? d : Array.isArray(d) ? d.map(e => e.msg || 'Campo inválido').join('; ') : 'Não foi possível concluir a operação. Tente novamente.';
+    const err = new Error(message); err.status = res.status; throw err;
   }
   return data;
 }
-function setStudent(student) {
-  loggedStudent = student;
-  document.getElementById('authForms').hidden = !!student;
-  document.getElementById('authLogged').hidden = !student;
-  document.getElementById('recommendPanel').hidden = !student;
-  document.getElementById('studentWelcome').textContent = student ? `Olá, ${student.name}! (${student.email})` : '';
-  if (!student) document.getElementById('studentHistory').replaceChildren();
+
+/* ---------- Rotas e abas ---------- */
+const ROUTES = {
+  'inicio':           { view: 'inicio',     title: 'Início' },
+  'entrar':           { view: 'entrar',     title: 'Entrar' },
+  'recomendar':       { view: 'recomendar', title: 'Encontrar cursos', needs: 'aluno' },
+  'historico':        { view: 'historico',  title: 'Meu histórico', needs: 'aluno' },
+  'conta':            { view: 'conta',      title: 'Minha conta', needs: 'aluno' },
+  'gestao':           { view: 'gestao', sub: 'visao',     title: 'Painel da gestão', needs: 'gestor' },
+  'gestao/consultas': { view: 'gestao', sub: 'consultas', title: 'Consultas', needs: 'gestor' },
+  'gestao/cursos':    { view: 'gestao', sub: 'cursos',    title: 'Cursos recomendados', needs: 'gestor' },
+};
+const SUB_TEXT = {
+  visao: ['Painel da gestão', 'Interesses declarados pelos estudantes e cursos que mais aparecem nas recomendações.'],
+  consultas: ['Consultas dos estudantes', 'Cada consulta registrada, com o texto informado e os cursos sugeridos.'],
+  cursos: ['Cursos mais recomendados', 'Ofertas que mais aparecem entre as sugestões, nos filtros escolhidos.'],
+};
+
+function parseHash() {
+  const raw = location.hash.replace(/^#\/?/, '');
+  const [path, query] = raw.split('?');
+  return { path: ROUTES[path] ? path : 'inicio', params: new URLSearchParams(query || '') };
 }
-async function studentAuth(action) {
-  const status = document.getElementById('authStatus');
-  status.className = 'error';
-  status.textContent = '';
-  const name = document.getElementById('studentName').value.trim();
-  const email = document.getElementById('studentEmail').value.trim();
-  const password = document.getElementById('studentPassword').value;
-  const payload = {email, password};
-  if (action === 'cadastro') {
-    if (name.length < 2) {status.textContent = 'Informe seu nome (pelo menos 2 caracteres).'; return;}
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {status.textContent = 'Informe um email válido.'; return;}
-    if (password.length < 12) {status.textContent = 'A senha precisa ter pelo menos 12 caracteres.'; return;}
-    if (!document.getElementById('privacyConsent').checked) {status.textContent = 'Leia e aceite o aviso de privacidade para criar sua conta.'; return;}
-    payload.name = name;
-    payload.consent = true;
-  } else if (!email || !password) {
-    status.textContent = 'Informe seu email e sua senha.'; return;
+
+function renderNav(current) {
+  const link = (path, label) => `<a class="tab" href="#/${path}" ${current === path ? 'aria-current="page"' : ''}>${label}</a>`;
+  let html = link('inicio', 'Início');
+  if (state.aluno) html += link('recomendar', 'Encontrar cursos') + link('historico', 'Meu histórico') + link('conta', 'Minha conta');
+  if (state.gestor) html += `<span class="tab-group">Gestão</span>` + link('gestao', 'Painel') + link('gestao/consultas', 'Consultas') + link('gestao/cursos', 'Cursos');
+  if (!state.aluno || !state.gestor) html += link('entrar', 'Entrar');
+  $('tabs').innerHTML = html;
+
+  const who = [], both = state.aluno && state.gestor;
+  if (state.aluno) who.push(`<div class="who"><b>${esc(state.aluno.name)}</b><small>Estudante</small></div><button class="btn small" data-action="logout-aluno">${both ? 'Sair (aluno)' : 'Sair'}</button>`);
+  if (state.gestor) who.push(`<div class="who"><b>${esc(state.gestor.username)}</b><small>Gestão</small></div><button class="btn small" data-action="logout-gestor">${both ? 'Sair (gestão)' : 'Sair'}</button>`);
+  $('session').innerHTML = who.join('');
+  $('ctaStart').href = state.aluno ? '#/recomendar' : '#/entrar';
+  $('ctaStart').textContent = state.aluno ? 'Encontrar cursos' : 'Começar agora';
+}
+
+let refreshTimer = null;
+async function route() {
+  const { path, params } = parseHash();
+  const r = ROUTES[path];
+  if (r.needs && !state[r.needs]) {
+    state.next = path;
+    location.replace(`#/entrar?perfil=${r.needs}&aviso=1`);
+    return;
   }
-  try {
-    const student = await authRequest('/api/alunos/' + action, 'POST', payload);
-    setStudent(student);
-    document.getElementById('studentPassword').value = '';
-    status.className = 'muted';
-    status.textContent = action === 'cadastro' ? 'Conta criada com sucesso! Você já está conectado.' : 'Login realizado com sucesso.';
-  } catch (error) {status.textContent = error.message; status.className='error';}
-}
-async function showHistory() {
-  try {
-    const items = await authRequest('/api/alunos/historico');
-    document.getElementById('studentHistory').innerHTML = '<h3>Minhas últimas consultas</h3>' + (items.length ? items.map(item=>`<article class="result"><strong>${escapeHtml(new Date(item.data).toLocaleString('pt-BR'))}</strong><p>${escapeHtml(item.interesses)}</p><p>Primeiro curso recomendado: ${escapeHtml(item.curso || 'Nenhum')}</p></article>`).join('') : '<p>Nenhuma consulta registrada ainda.</p>');
-  } catch(e) {document.getElementById('authStatus').textContent=e.message;}
-}
-async function logoutStudent() {
-  await authRequest('/api/alunos/logout','POST'); setStudent(null);
-  document.getElementById('results').replaceChildren();
-}
-async function deleteStudent() {
-  if (!confirm('Excluir definitivamente sua conta e todas as consultas associadas?')) return;
-  try {await authRequest('/api/alunos/conta','DELETE');setStudent(null);document.getElementById('results').replaceChildren();}
-  catch(e) {document.getElementById('authStatus').textContent=e.message;}
-}
-async function loadStudent() {
-  try {setStudent(await authRequest('/api/alunos/me'));} catch {setStudent(null);}
-}
-async function loadMetadata() {
-  const status = document.getElementById('status');
-  for (let attempt = 0; attempt < 6; attempt++) {
-    try {
-      const response = await fetch('/metadata', {cache: 'no-store'});
-      if (!response.ok) throw new Error('Serviço ainda indisponível');
-      const data = await response.json();
-      for (const [id, values] of [['campus', data.campi], ['nivel', data.niveis]]) {
-        const select = document.getElementById(id);
-        select.replaceChildren(new Option('Todos', 'Todos'));
-        values.forEach(value => select.add(new Option(value, value)));
-      }
-      status.textContent = '';
-      return;
-    } catch (error) {
-      status.textContent = `Aguardando inicialização da aplicação... tentativa ${attempt + 1}/6`;
-      if (attempt < 5) await new Promise(resolve => setTimeout(resolve, Math.min(1000 * 2 ** attempt, 10000)));
-    }
+  document.querySelectorAll('[data-view]').forEach(s => s.hidden = s.dataset.view !== r.view);
+  document.title = `${r.title} | Recomendador de Cursos IFS`;
+  renderNav(path);
+  clearInterval(refreshTimer);
+
+  if (r.view === 'entrar') {
+    setRole(params.get('perfil') === 'gestor' ? 'gestor' : 'aluno');
+    $('authNotice').textContent = params.get('aviso') ? (params.get('perfil') === 'gestor' ? 'Entre como gestor para acessar a gestão.' : 'Entre com sua conta de estudante para continuar.') : '';
   }
-  status.innerHTML = '<span class="error">Não foi possível carregar os filtros. <button type="button" onclick="loadMetadata()">Tentar novamente</button></span>';
+  if (r.view === 'historico') loadHistory();
+  if (r.view === 'conta') renderAccount();
+  if (r.view === 'gestao') {
+    document.querySelectorAll('[data-sub]').forEach(s => s.hidden = s.dataset.sub !== r.sub);
+    [$('gTitle').textContent, $('gDesc').textContent] = SUB_TEXT[r.sub];
+    loadDashboard();
+    refreshTimer = setInterval(() => { if (!document.hidden) loadDashboard(true); }, 30000);
+  }
+  window.scrollTo(0, 0);
 }
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function goAfterLogin(role) {
+  const fallback = role === 'gestor' ? 'gestao' : 'recomendar';
+  const target = state.next && ROUTES[state.next]?.needs === role ? state.next : fallback;
+  state.next = null;
+  location.hash = '#/' + target;
 }
-function renderResult(course, index) {
-  const dimensions = Object.values(course.detalhamento).map(d => {
-    const width = Math.max(0, Math.min(100, d.similaridade * 100));
-    return `<div class="barrow"><span>${escapeHtml(d.label)}</span><div class="bar"><span style="width:${width}%"></span></div><strong>${d.similaridade.toFixed(3)}</strong></div>`;
+
+/* ---------- Entrar ---------- */
+function setRole(role) {
+  state.role = role;
+  document.querySelectorAll('[data-role]').forEach(b => b.setAttribute('aria-pressed', b.dataset.role === role));
+  $('studentForm').hidden = role !== 'aluno';
+  $('managerForm').hidden = role !== 'gestor';
+  setMsg('studentMsg', ''); setMsg('managerMsg', '');
+}
+function setMode(mode) {
+  state.mode = mode;
+  document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === mode));
+  document.querySelectorAll('[data-only="cadastro"]').forEach(el => el.hidden = mode !== 'cadastro');
+  $('studentPassword').autocomplete = mode === 'cadastro' ? 'new-password' : 'current-password';
+  $('studentSubmit').textContent = mode === 'cadastro' ? 'Criar conta' : 'Entrar';
+  setMsg('studentMsg', '');
+}
+document.querySelectorAll('[data-role]').forEach(b => b.onclick = () => setRole(b.dataset.role));
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+
+$('studentForm').onsubmit = async e => {
+  e.preventDefault();
+  const name = $('studentName').value.trim(), email = $('studentEmail').value.trim(), password = $('studentPassword').value;
+  const cadastro = state.mode === 'cadastro';
+  if (cadastro && name.length < 2) return setMsg('studentMsg', 'Informe seu nome (pelo menos 2 letras).');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setMsg('studentMsg', 'Informe um email válido, como nome@exemplo.com.');
+  if (cadastro && password.length < 12) return setMsg('studentMsg', 'A senha precisa ter pelo menos 12 caracteres.');
+  if (!cadastro && !password) return setMsg('studentMsg', 'Informe sua senha.');
+  if (cadastro && !$('privacyConsent').checked) return setMsg('studentMsg', 'Para criar a conta, aceite o aviso de privacidade.');
+  const btn = $('studentSubmit'); btn.disabled = true;
+  try {
+    state.aluno = await api('/api/alunos/' + (cadastro ? 'cadastro' : 'login'), { method: 'POST', body: cadastro ? { name, email, password, consent: true } : { email, password } });
+    $('studentPassword').value = '';
+    goAfterLogin('aluno');
+  } catch (err) { setMsg('studentMsg', err.message); }
+  finally { btn.disabled = false; }
+};
+
+$('managerForm').onsubmit = async e => {
+  e.preventDefault();
+  const username = $('managerUser').value.trim(), password = $('managerPassword').value;
+  if (!username || !password) return setMsg('managerMsg', 'Informe usuário e senha da gestão.');
+  const btn = $('managerSubmit'); btn.disabled = true;
+  try {
+    state.gestor = await api('/api/gestao/login', { method: 'POST', body: { username, password } });
+    $('managerPassword').value = '';
+    goAfterLogin('gestor');
+  } catch (err) { setMsg('managerMsg', err.message); }
+  finally { btn.disabled = false; }
+};
+
+document.addEventListener('click', async e => {
+  const action = e.target.closest('[data-action]')?.dataset.action;
+  if (action === 'logout-aluno') {
+    await api('/api/alunos/logout', { method: 'POST' }).catch(() => {});
+    state.aluno = null; $('results').innerHTML = emptyResults; location.hash = '#/inicio'; route();
+  }
+  if (action === 'logout-gestor') {
+    await api('/api/gestao/logout', { method: 'POST' }).catch(() => {});
+    state.gestor = null; state.dashboard = null; location.hash = '#/inicio'; route();
+  }
+});
+
+/* ---------- Recomendar ---------- */
+const emptyResults = $('results').innerHTML;
+$('interesses').oninput = () => $('charCount').textContent = $('interesses').value.length;
+
+function renderResult(c, i) {
+  const dims = Object.values(c.detalhamento || {}).map(d => {
+    const w = Math.max(0, Math.min(100, d.similaridade * 100));
+    return `<div class="dim"><span>${esc(d.label)}</span><div class="track"><span style="width:${w}%"></span></div><span class="num" style="text-align:right">${sf.format(d.similaridade)}</span></div>`;
   }).join('');
   return `<article class="result">
-    <span class="score">Score: ${course.score.toFixed(4)}</span>
-    <h3>${index + 1}. ${escapeHtml(course.nome)}</h3>
-    <div class="meta">${escapeHtml(course.campus)} · ${escapeHtml(course.nivel)} · ${escapeHtml(course.duracao)} · ${escapeHtml(course.id_oferta)}</div>
-    <p class="description">${escapeHtml(course.descricao)}</p>
-    <p><strong>Dimensão mais próxima:</strong> ${escapeHtml(course.dimensao_mais_proxima)}</p>
-    <details><summary>Ver detalhamento da similaridade</summary>${dimensions}</details>
-    <details><summary>Interesses, habilidades e possibilidades profissionais</summary>
-      <p><strong>Interesses:</strong> ${escapeHtml(course.interesses_relacionados)}</p>
-      <p><strong>Habilidades:</strong> ${escapeHtml(course.habilidades_relacionadas)}</p>
-      <p><strong>Objetivos profissionais:</strong> ${escapeHtml(course.objetivos_profissionais)}</p>
-      <p><strong>Áreas de atuação:</strong> ${escapeHtml(course.areas_atuacao)}</p>
-      <p><strong>Dimensões vocacionais:</strong> ${escapeHtml(course.dimensoes_vocacionais)}</p>
+    <div class="result-head"><h3>${i + 1}. ${esc(c.nome)}</h3><div class="score">Similaridade<b class="num">${sf.format(c.score)}</b></div></div>
+    <div class="meta">${esc(c.campus)} · ${esc(c.nivel)} · ${esc(c.duracao)} · ${esc(c.area_principal)}</div>
+    <p class="desc">${esc(c.descricao)}</p>
+    <p class="small" style="margin:0"><b>Mais parecido com:</b> ${esc(c.dimensao_mais_proxima)}</p>
+    <details><summary>Por que este curso apareceu</summary>${dims}</details>
+    <details><summary>Interesses, habilidades e carreira</summary>
+      <p class="small"><b>Interesses:</b> ${esc(c.interesses_relacionados)}</p>
+      <p class="small"><b>Habilidades:</b> ${esc(c.habilidades_relacionadas)}</p>
+      <p class="small"><b>Objetivos profissionais:</b> ${esc(c.objetivos_profissionais)}</p>
+      <p class="small"><b>Áreas de atuação:</b> ${esc(c.areas_atuacao)}</p>
     </details>
   </article>`;
 }
-async function recommend() {
-  const interesses = document.getElementById('interesses').value.trim();
-  const status = document.getElementById('status');
-  const results = document.getElementById('results');
-  const button = document.getElementById('submit');
-  if (interesses.length < 5) {
-    status.innerHTML = '<span class="error">Informe uma descrição de interesses com pelo menos 5 caracteres.</span>';
-    return;
-  }
-  button.disabled = true;
-  button.textContent = 'Processando...';
-  status.textContent = 'Calculando similaridade semântica...';
-  results.innerHTML = '';
+
+$('recForm').onsubmit = async e => {
+  e.preventDefault();
+  const interesses = $('interesses').value.trim();
+  if (interesses.length < 5) return setMsg('recMsg', 'Escreva um pouco mais sobre você (pelo menos 5 caracteres).');
+  setMsg('recMsg', '');
+  const btn = $('recSubmit'); btn.disabled = true; btn.textContent = 'Buscando…';
+  $('results').innerHTML = '<div class="empty"><b>Comparando sua descrição com as ofertas…</b>Isso leva alguns segundos.</div>';
   try {
-    const response = await fetch('/recommend', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        interesses,
-        campus: document.getElementById('campus').value,
-        nivel: document.getElementById('nivel').value,
-        limite: Number(document.getElementById('limite').value)
-      })
+    const data = await api('/recommend', { method: 'POST', body: { interesses, campus: $('campus').value, nivel: $('nivel').value, limite: Number($('limite').value) } });
+    $('results').innerHTML = data.resultados.length
+      ? `<p class="muted small" style="margin:0 0 12px">${nf.format(data.total_retornado)} oferta(s), da mais para a menos parecida com o que você escreveu.</p>` + data.resultados.map(renderResult).join('')
+      : '<div class="empty"><b>Nenhuma oferta com esses filtros</b>Tente “Todos” em campus ou nível.</div>';
+  } catch (err) {
+    if (err.status === 401) { state.aluno = null; state.next = 'recomendar'; location.hash = '#/entrar?perfil=aluno&aviso=1'; return; }
+    $('results').innerHTML = emptyResults; setMsg('recMsg', err.message);
+  } finally { btn.disabled = false; btn.textContent = 'Buscar cursos'; }
+};
+
+/* ---------- Histórico e conta ---------- */
+async function loadHistory() {
+  const box = $('historyList');
+  box.innerHTML = '<p class="muted">Carregando…</p>';
+  try {
+    const items = await api('/api/alunos/historico');
+    box.innerHTML = items.length ? items.map((it, i) => `<div class="hist-item">
+      <div class="when">${fmtDate(it.data)} · ${esc(it.campus || 'Todos os campi')} · ${esc(it.nivel || 'Todos os níveis')}</div>
+      <p>${esc(it.interesses)}</p>
+      <div class="chips">${(it.resultados || []).slice(0, 5).map(r => `<span class="chip">${esc(r.nome)} · ${esc(r.campus)}</span>`).join('')}</div>
+      <button class="btn small" style="margin-top:10px" data-repeat="${i}">Buscar de novo com este texto</button></div>`).join('')
+      : '<div class="empty" style="border:0"><b>Nenhuma consulta ainda</b><a href="#/recomendar">Fazer a primeira busca</a></div>';
+    box.querySelectorAll('[data-repeat]').forEach(b => b.onclick = () => {
+      const it = items[+b.dataset.repeat];
+      $('interesses').value = it.interesses; $('charCount').textContent = it.interesses.length;
+      location.hash = '#/recomendar';
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.detail || 'Falha ao consultar recomendações.');
-    status.textContent = `${data.total_retornado} oferta(s) encontrada(s). ${data.observacao}`;
-    results.innerHTML = data.resultados.map(renderResult).join('');
-  } catch (error) {
-    status.innerHTML = `<span class="error">${escapeHtml(error.message)}</span>`;
-  } finally {
-    button.disabled = false;
-    button.textContent = 'Buscar cursos recomendados';
+  } catch (err) { box.innerHTML = `<p class="msg error">${esc(err.message)}</p>`; }
+}
+
+function renderAccount() {
+  $('accountData').innerHTML = `<div><small>Nome</small><b>${esc(state.aluno.name)}</b></div><div><small>Email</small><b>${esc(state.aluno.email)}</b></div>`;
+  setMsg('accountMsg', '');
+}
+$('deleteAccount').onclick = async () => {
+  if (!confirm('Excluir definitivamente sua conta e todas as suas consultas? Essa ação não pode ser desfeita.')) return;
+  try { await api('/api/alunos/conta', { method: 'DELETE' }); state.aluno = null; $('results').innerHTML = emptyResults; location.hash = '#/inicio'; }
+  catch (err) { setMsg('accountMsg', err.message); }
+};
+
+/* ---------- Gestão ---------- */
+function gParams() {
+  const p = new URLSearchParams({ period: $('gPeriod').value, campus: $('gCampus').value, nivel: $('gNivel').value, area: $('gArea').value });
+  const s = $('gSearch').value.trim(); if (s) p.set('search', s);
+  return p;
+}
+function fillSelect(id, values, allLabel) {
+  const el = $(id), keep = el.value;
+  el.innerHTML = `<option value="all">${allLabel}</option>` + values.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  if (values.includes(keep)) el.value = keep;
+}
+function bars(items) {
+  if (!items.length) return '<p class="muted small" style="margin:0">Nenhum registro nos filtros escolhidos.</p>';
+  const max = Math.max(1, ...items.map(x => x.count));
+  return items.slice(0, 10).map(x => `<div class="bar"><span class="label" title="${esc(x.name)}">${esc(x.name)}</span><div class="track"><span style="width:${x.count / max * 100}%"></span></div><span class="val">${nf.format(x.count)}</span></div>`).join('');
+}
+function timeline(evolucao) {
+  const period = Number($('gPeriod').value) || 30;
+  const days = Math.min(period, 90);
+  const counts = Object.fromEntries(evolucao.map(e => [e.day, e.count]));
+  const list = [];
+  for (let i = days - 1; i >= 0; i--) { const d = new Date(); d.setUTCDate(d.getUTCDate() - i); const k = d.toISOString().slice(0, 10); list.push([k, counts[k] || 0]); }
+  const max = Math.max(1, ...list.map(x => x[1]));
+  const total = list.reduce((a, x) => a + x[1], 0);
+  return `<p class="muted small" style="margin:-6px 0 6px">Últimos ${days} dias · ${nf.format(total)} consulta(s)</p>
+    <div class="cols" role="img" aria-label="Consultas por dia nos últimos ${days} dias">${list.map(([k, v]) => `<div class="${v ? '' : 'zero'}" style="height:${v / max * 100}%" title="${new Date(k + 'T12:00:00Z').toLocaleDateString('pt-BR')}: ${v}"></div>`).join('')}</div>
+    <div class="cols-axis"><span>${new Date(list[0][0] + 'T12:00:00Z').toLocaleDateString('pt-BR')}</span><span>Hoje</span></div>`;
+}
+
+async function loadDashboard(silent = false) {
+  if (!silent) setMsg('gMsg', '');
+  try {
+    const d = state.dashboard = await api('/api/gestao/dashboard?' + gParams());
+    fillSelect('gCampus', d.catalogo_campi, 'Todos');
+    fillSelect('gNivel', d.catalogo_niveis, 'Todos');
+    if ($('gArea').options.length <= 1) fillSelect('gArea', d.areas.map(a => a.name).filter(n => n !== 'Não informado'), 'Todas');
+    // "Todos" significa que o estudante não filtrou por campus: não conta como campus escolhido.
+    const regioes = d.regioes.map(r => r.name === 'Todos' || r.name === 'Não informado' ? { ...r, name: 'Sem preferência de campus' } : r);
+    const campiEscolhidos = d.regioes.filter(r => r.name !== 'Todos' && r.name !== 'Não informado').length;
+    $('gKpis').innerHTML = [['Consultas', d.total_consultas], ['Estudantes distintos', d.alunos_distintos], ['Campi escolhidos', campiEscolhidos], ['Cursos sugeridos', d.cursos_sugeridos]]
+      .map(([l, v]) => `<div class="kpi"><span>${l}</span><b class="num">${nf.format(v)}</b></div>`).join('');
+    $('gTimeline').innerHTML = timeline(d.evolucao);
+    $('gAreas').innerHTML = bars(d.areas);
+    $('gCampi').innerHTML = bars(regioes);
+    $('gCursos').innerHTML = d.cursos.length ? d.cursos.map((c, i) => `<tr><td class="num">${i + 1}</td><td>${esc(c.nome)}</td><td>${esc(c.campus)}</td><td class="num">${nf.format(c.count)}</td></tr>`).join('')
+      : '<tr><td colspan="4" class="muted">Ainda não há recomendações registradas nesses filtros.</td></tr>';
+    $('gConsultas').innerHTML = d.consultas.length ? d.consultas.map((c, i) => `<tr>
+        <td><b>${esc(c.aluno)}</b><br><span class="muted">${esc(c.email)}</span></td><td class="num">${fmtDate(c.data)}</td>
+        <td>${esc(c.campus || 'Todos')}</td><td>${esc(c.nivel || 'Todos')}</td><td><div class="clip" title="${esc(c.interesses)}">${esc(c.interesses)}</div></td>
+        <td>${esc(c.curso || '—')}</td><td><button class="btn small" data-consulta="${i}" aria-expanded="false">Ver</button></td></tr>`).join('')
+      : '<tr><td colspan="7" class="muted">Nenhuma consulta registrada nesses filtros.</td></tr>';
+    $('gUpdated').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  } catch (err) {
+    if (err.status === 401) { state.gestor = null; state.next = parseHash().path; location.hash = '#/entrar?perfil=gestor&aviso=1'; return; }
+    setMsg('gMsg', 'Não foi possível carregar os dados da gestão: ' + err.message);
   }
 }
-loadMetadata();
-loadStudent();
+$('gConsultas').addEventListener('click', e => {
+  const b = e.target.closest('[data-consulta]'); if (!b) return;
+  const row = b.closest('tr'), next = row.nextElementSibling;
+  if (next?.classList.contains('detail-row')) { next.remove(); b.setAttribute('aria-expanded', 'false'); b.textContent = 'Ver'; return; }
+  const c = state.dashboard.consultas[+b.dataset.consulta];
+  const tr = document.createElement('tr'); tr.className = 'detail-row';
+  tr.innerHTML = `<td colspan="7"><div class="detail-grid">
+    <div style="grid-column:1/-1"><small>Interesses declarados</small>${esc(c.interesses)}</div>
+    <div style="grid-column:1/-1"><small>Cursos sugeridos (similaridade)</small><div class="chips" style="margin-top:4px">${c.resultados.map((r, i) => `<span class="chip">${i + 1}. ${esc(r.nome)} · ${esc(r.campus)} · <span class="num">${sf.format(r.score)}</span></span>`).join('')}</div></div></div></td>`;
+  row.after(tr); b.setAttribute('aria-expanded', 'true'); b.textContent = 'Fechar';
+});
+$('gFilters').onsubmit = e => { e.preventDefault(); loadDashboard(); };
+$('gRefresh').onclick = () => loadDashboard();
+$('gSearchBtn').onclick = () => loadDashboard();
+$('gSearch').onkeydown = e => { if (e.key === 'Enter') loadDashboard(); };
+$('gExport').onclick = () => { location.href = '/api/gestao/export?' + gParams(); };
+
+/* ---------- Inicialização ---------- */
+async function loadMetadata() {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    try {
+      const m = state.metadata = await api('/metadata');
+      for (const [id, values] of [['campus', m.campi], ['nivel', m.niveis]]) {
+        const el = $(id); el.replaceChildren(new Option('Todos', 'Todos')); values.forEach(v => el.add(new Option(v, v)));
+      }
+      $('facts').innerHTML = [[m.total_ofertas, 'ofertas de cursos'], [m.campi.length, 'campi'], [m.niveis.length, 'níveis de ensino']]
+        .map(([n, l]) => `<div><b class="num">${nf.format(n)}</b><span>${l}</span></div>`).join('');
+      setMsg('recMsg', '');
+      return;
+    } catch {
+      setMsg('recMsg', `O sistema ainda está iniciando (tentativa ${attempt + 1} de 6)…`, 'info');
+      if (attempt < 5) await new Promise(r => setTimeout(r, Math.min(1000 * 2 ** attempt, 10000)));
+    }
+  }
+  setMsg('recMsg', 'Não foi possível carregar os campi e níveis. Recarregue a página em instantes.');
+}
+
+(async () => {
+  setMode('login');
+  const [aluno, gestor] = await Promise.allSettled([api('/api/alunos/me'), api('/api/gestao/me')]);
+  state.aluno = aluno.status === 'fulfilled' ? aluno.value : null;
+  state.gestor = gestor.status === 'fulfilled' ? gestor.value : null;
+  window.addEventListener('hashchange', route);
+  route();
+  loadMetadata();
+})();
 </script>
 </body>
 </html>
