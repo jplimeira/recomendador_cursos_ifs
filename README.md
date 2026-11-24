@@ -25,7 +25,7 @@ Tudo funciona em uma única página com abas; cada pessoa vê as abas do seu per
 
 ### Requisitos
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Docker Engine e Docker Compose v2) em execução.
-- Internet na primeira inicialização, para baixar o modelo de linguagem (cerca de 470 MB, guardado em cache depois).
+- Internet na primeira inicialização, para baixar o modelo de linguagem (cerca de 460 MB, guardado em cache depois).
 
 ### 1. Configure a senha da gestão
 
@@ -126,7 +126,7 @@ Os dados de uso (contas, sessões, consultas, perfis e sugestões) ficam em SQLi
 ## Atualizar os cursos
 
 1. Edite a planilha em `docs/` e atualize `data/cursos_ifs.json` com os mesmos dados.
-2. Regenere os perfis RIASEC (perfis revisados manualmente são preservados):
+2. Regenere os perfis RIASEC no seu computador (precisa de Python 3.11 e `pip install -r requirements-dev.txt`; perfis revisados manualmente são preservados):
    ```bash
    python -m scripts.gerar_riasec_cursos
    ```
@@ -141,17 +141,19 @@ Na inicialização, o sistema valida o catálogo (IDs únicos e campos obrigató
 | `GESTAO_USER` / `GESTAO_PASSWORD` | `gestao` / obrigatória | Credenciais da gestão (arquivo `.env`) |
 | `RIASEC_WEIGHT` | `0.5` | Peso do perfil no modo híbrido (0 = só texto, 1 = só perfil) |
 | `LOW_AFFINITY_THRESHOLD` | `0.40` | Abaixo disso, avisa que não há curso parecido |
-| `WEIGHTS_FILE` | — | Arquivo JSON com outros pesos do modo texto (soma 1) |
+| `WEIGHTS_FILE` | — | Arquivo JSON com outros pesos do modo texto (soma 1). No contêiner: edite `config/weights.json`, defina `WEIGHTS_FILE: /app/config/weights.json` no `docker-compose.yml` e reconstrua |
 | `MAX_CONCURRENT_INFERENCES` | `2` | Recomendações simultâneas; acima disso responde 503 e pede nova tentativa |
 
 ## Testes e avaliação
+
+Com Python 3.11 instalado:
 
 ```bash
 pip install -r requirements-dev.txt
 pytest -q
 ```
 
-Os testes usam um modelo simulado e não baixam o modelo real.
+Os testes usam um modelo simulado: não instalam o PyTorch nem baixam o modelo real.
 
 Para medir a qualidade, crie `avaliacoes.json` com casos avaliados por professores ou orientadores:
 
@@ -160,17 +162,18 @@ Para medir a qualidade, crie `avaliacoes.json` com casos avaliados por professor
   "relevantes": ["OFE-001"]}]
 ```
 
-O campo `riasec` é opcional; use IDs reais de `data/cursos_ifs.json`. Em seguida, com o modelo disponível:
+O campo `riasec` é opcional; use IDs reais de `data/cursos_ifs.json`. A avaliação precisa do modelo real, então roda dentro do contêiner (com o sistema ligado):
 
 ```bash
-python -m scripts.evaluate avaliacoes.json --pesos 0 0.25 0.5 0.75 1
+docker cp avaliacoes.json recomendador-cursos-ifs:/app/avaliacoes.json
+docker exec recomendador-cursos-ifs python -m scripts.evaluate avaliacoes.json --pesos 0 0.25 0.5 0.75 1
 ```
 
 O script mostra Recall@5 e MRR@5 dos modos texto, perfil e híbrido (com cada peso). Os pesos não são alterados automaticamente.
 
 ## Privacidade e segurança
 
-- **Dados guardados:** nome, email, hash da senha, data do aceite de privacidade, texto e resultado das consultas, respostas do inventário e sugestões. Não são coletados IP, dados do dispositivo, idade ou cidade.
+- **Dados guardados:** nome, email, hash da senha, data do aceite de privacidade, texto e resultado das consultas, respostas do inventário e sugestões. Não são armazenados IP, dados do dispositivo, idade ou cidade (o IP é usado só na memória, por 15 minutos, para limitar tentativas de login).
 - **Controle do estudante:** pode ver o histórico, apagar o perfil e as sugestões e excluir a conta com todos os dados.
 - **Proteções:** senhas com PBKDF2-SHA256 (310 mil iterações); sessões em cookie HttpOnly e SameSite=Strict (7 dias para estudante, 8 horas para gestor); bloqueio após 8 tentativas de login em 15 minutos; exportações CSV protegidas contra fórmulas.
 - **Antes de publicar na internet:** HTTPS obrigatório; política de privacidade conforme a LGPD (finalidade, base legal, retenção e encarregado); recuperação de senha e verificação de email; auditoria de acesso da gestão; testes de carga e de segurança. Os CSVs exportados contêm nomes e emails: proteja-os.
