@@ -1,0 +1,474 @@
+{
+  "descricao": "Perfil RIASEC (0 a 1) de cada perfil de curso. Para revisar um curso, altere o vetor e troque \"fonte\" para algo como \"revisado_professores\" ou \"onet:<código da ocupação>\".",
+  "regra_conversao": "1ª letra 1,0; 2ª 0,7; 3ª 0,5; \"com componente\" 0,4; demais 0",
+  "perfis": {
+    "CUR-001": {
+      "curso": "Agrimensura",
+      "texto_original": "Realista e Investigativo",
+      "vetor": {
+        "R": 1.0,
+        "I": 0.7,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-002": {
+      "curso": "Agroecologia",
+      "texto_original": "Realista, Investigativo e Social",
+      "vetor": {
+        "R": 1.0,
+        "I": 0.7,
+        "A": 0.0,
+        "S": 0.5,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-003": {
+      "curso": "Agroindústria",
+      "texto_original": "Realista e Empreendedor",
+      "vetor": {
+        "R": 1.0,
+        "I": 0.0,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.7,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-004": {
+      "curso": "Agronegócio",
+      "texto_original": "Empreendedor, Convencional e Realista",
+      "vetor": {
+        "R": 0.5,
+        "I": 0.0,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 1.0,
+        "C": 0.7
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-005": {
+      "curso": "Agropecuária",
+      "texto_original": "Realista e Investigativo",
+      "vetor": {
+        "R": 1.0,
+        "I": 0.7,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-006": {
+      "curso": "Alimentos",
+      "texto_original": "Realista e Investigativo",
+      "vetor": {
+        "R": 1.0,
+        "I": 0.7,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-007": {
+      "curso": "Análise e Desenvolvimento de Sistemas",
+      "texto_original": "Investigativo e Realista, com componente Convencional",
+      "vetor": {
+        "R": 0.7,
+        "I": 1.0,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.4
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-008": {
+      "curso": "Arquitetura e Urbanismo",
+      "texto_original": "Artístico, Realista e Social",
+      "vetor": {
+        "R": 0.7,
+        "I": 0.0,
+        "A": 1.0,
+        "S": 0.5,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-009": {
+      "curso": "Ciência da Computação",
+      "texto_original": "Investigativo e Realista",
+      "vetor": {
+        "R": 0.7,
+        "I": 1.0,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-010": {
+      "curso": "Comércio",
+      "texto_original": "Empreendedor e Social",
+      "vetor": {
+        "R": 0.0,
+        "I": 0.0,
+        "A": 0.0,
+        "S": 0.7,
+        "E": 1.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-011": {
+      "curso": "Edificações",
+      "texto_original": "Realista e Convencional, com componente Investigativo",
+      "vetor": {
+        "R": 1.0,
+        "I": 0.4,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.7
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-012": {
+      "curso": "Eletromecânica",
+      "texto_original": "Realista e Investigativo",
+      "vetor": {
+        "R": 1.0,
+        "I": 0.7,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-013": {
+      "curso": "Eletrotécnica",
+      "texto_original": "Realista e Investigativo",
+      "vetor": {
+        "R": 1.0,
+        "I": 0.7,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-014": {
+      "curso": "Eletrônica",
+      "texto_original": "Realista e Investigativo",
+      "vetor": {
+        "R": 1.0,
+        "I": 0.7,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-015": {
+      "curso": "Engenharia Civil",
+      "texto_original": "Realista e Investigativo, com componente Convencional",
+      "vetor": {
+        "R": 1.0,
+        "I": 0.7,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.4
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-016": {
+      "curso": "Engenharia Elétrica",
+      "texto_original": "Investigativo e Realista",
+      "vetor": {
+        "R": 0.7,
+        "I": 1.0,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-017": {
+      "curso": "Física",
+      "texto_original": "Investigativo e Social",
+      "vetor": {
+        "R": 0.0,
+        "I": 1.0,
+        "A": 0.0,
+        "S": 0.7,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-018": {
+      "curso": "Gestão de Tecnologia da Informação",
+      "texto_original": "Empreendedor e Convencional, com componente Investigativo",
+      "vetor": {
+        "R": 0.0,
+        "I": 0.4,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 1.0,
+        "C": 0.7
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-019": {
+      "curso": "Gestão em Turismo",
+      "texto_original": "Empreendedor e Social",
+      "vetor": {
+        "R": 0.0,
+        "I": 0.0,
+        "A": 0.0,
+        "S": 0.7,
+        "E": 1.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-020": {
+      "curso": "Hospedagem",
+      "texto_original": "Social e Empreendedor",
+      "vetor": {
+        "R": 0.0,
+        "I": 0.0,
+        "A": 0.0,
+        "S": 1.0,
+        "E": 0.7,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-021": {
+      "curso": "Informática",
+      "texto_original": "Investigativo e Realista, com componente Convencional",
+      "vetor": {
+        "R": 0.7,
+        "I": 1.0,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.4
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-022": {
+      "curso": "Licenciatura em Ciências Biológicas",
+      "texto_original": "Investigativo e Social",
+      "vetor": {
+        "R": 0.0,
+        "I": 1.0,
+        "A": 0.0,
+        "S": 0.7,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-023": {
+      "curso": "Manutenção e Suporte em Informática",
+      "texto_original": "Realista e Investigativo, com componente Social",
+      "vetor": {
+        "R": 1.0,
+        "I": 0.7,
+        "A": 0.0,
+        "S": 0.4,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-024": {
+      "curso": "Matemática",
+      "texto_original": "Investigativo e Social",
+      "vetor": {
+        "R": 0.0,
+        "I": 1.0,
+        "A": 0.0,
+        "S": 0.7,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-025": {
+      "curso": "Petróleo e Gás",
+      "texto_original": "Realista e Investigativo",
+      "vetor": {
+        "R": 1.0,
+        "I": 0.7,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-026": {
+      "curso": "Química",
+      "texto_original": "Investigativo e Realista",
+      "vetor": {
+        "R": 0.7,
+        "I": 1.0,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-027": {
+      "curso": "Recursos Pesqueiros",
+      "texto_original": "Realista e Investigativo",
+      "vetor": {
+        "R": 1.0,
+        "I": 0.7,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-028": {
+      "curso": "Redes de Computadores",
+      "texto_original": "Realista, Investigativo e Convencional",
+      "vetor": {
+        "R": 1.0,
+        "I": 0.7,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.5
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-029": {
+      "curso": "Saneamento Ambiental",
+      "texto_original": "Investigativo, Realista e Social",
+      "vetor": {
+        "R": 0.7,
+        "I": 1.0,
+        "A": 0.0,
+        "S": 0.5,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-030": {
+      "curso": "Segurança no Trabalho",
+      "texto_original": "Social, Investigativo e Convencional",
+      "vetor": {
+        "R": 0.0,
+        "I": 0.7,
+        "A": 0.0,
+        "S": 1.0,
+        "E": 0.0,
+        "C": 0.5
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-031": {
+      "curso": "Sistemas de Informação",
+      "texto_original": "Investigativo, Empreendedor e Convencional",
+      "vetor": {
+        "R": 0.0,
+        "I": 1.0,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.7,
+        "C": 0.5
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-032": {
+      "curso": "Tecnologia em Agroecologia",
+      "texto_original": "Realista, Investigativo e Social",
+      "vetor": {
+        "R": 1.0,
+        "I": 0.7,
+        "A": 0.0,
+        "S": 0.5,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-033": {
+      "curso": "Tecnologia em Alimentos",
+      "texto_original": "Investigativo e Realista",
+      "vetor": {
+        "R": 0.7,
+        "I": 1.0,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-034": {
+      "curso": "Tecnologia em Laticínios",
+      "texto_original": "Investigativo e Realista",
+      "vetor": {
+        "R": 0.7,
+        "I": 1.0,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.0,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-035": {
+      "curso": "Tecnologia em Logística",
+      "texto_original": "Convencional e Empreendedor",
+      "vetor": {
+        "R": 0.0,
+        "I": 0.0,
+        "A": 0.0,
+        "S": 0.0,
+        "E": 0.7,
+        "C": 1.0
+      },
+      "fonte": "derivado_do_texto"
+    },
+    "CUR-036": {
+      "curso": "Turismo",
+      "texto_original": "Social e Empreendedor",
+      "vetor": {
+        "R": 0.0,
+        "I": 0.0,
+        "A": 0.0,
+        "S": 1.0,
+        "E": 0.7,
+        "C": 0.0
+      },
+      "fonte": "derivado_do_texto"
+    }
+  }
+}

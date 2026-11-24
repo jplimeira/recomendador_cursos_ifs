@@ -25,7 +25,9 @@ Recomendação semântica por oferta (curso + campus + nível), não por palavra
 
 - Protótipo acadêmico. Usa o nome e o catálogo do IFS, mas **não é um sistema oficial do instituto**.
 - Estudante: acessa `/`, cria conta (nome, email, senha, aceite de privacidade), descreve interesses, filtra por campus e nível, vê resultados e o próprio histórico, e pode excluir a conta.
-- Interface única em `/` com abas por perfil (navegação por `#/rota`): visitante (Início, Entrar), estudante (Encontrar cursos, Meu histórico, Sugerir curso, Minha conta) e gestor (Painel, Consultas, Cursos, Sugestões). Aluno e gestor podem estar conectados ao mesmo tempo.
+- Interface única em `/` com abas por perfil (navegação por `#/rota`): visitante (Início, Entrar), estudante (Encontrar cursos, Perfil de interesses, Meu histórico, Sugerir curso, Minha conta) e gestor (Painel, Consultas, Cursos, Sugestões). Aluno e gestor podem estar conectados ao mesmo tempo.
+- Inventário de interesses RIASEC (Holland): 30 atividades (5 por tipo) em escala de 1 a 5, com itens próprios do projeto no formato do O*NET Interest Profiler/IPIP, ainda não validados para a população brasileira. Gera o perfil do estudante (gráfico de radar e código de 3 letras). Apresentado como inventário para orientação educacional, não como teste psicológico.
+- Recomendação em três modos: só texto (similaridade semântica), só perfil RIASEC (congruência por correlação entre perfis) ou híbrido (componentes normalizados e combinados pelo peso `RIASEC_WEIGHT`, padrão 0,5). Perfis sem diferenciação entre os tipos são ignorados. Os perfis RIASEC dos cursos ficam em `data/riasec_cursos.json`, derivados do texto `dimensoes_vocacionais` e revisáveis (O*NET OnLine, professores).
 - Sugestões de novos cursos: o estudante indica um curso que o IFS deveria oferecer (nome, área, campus, nível e motivo), vê e apaga as próprias sugestões (até 10 por dia). A gestão vê o ranking dos cursos mais pedidos, agrupando grafias diferentes e indicando se o curso já existe no catálogo, além da lista completa e exportação CSV.
 - Gestão: login de gestor por formulário com sessão em cookie HttpOnly (8 h); dashboard atualizado a cada 30 s e exportação CSV. `/gestao` redireciona para a aba; HTTP Basic segue aceito na API para scripts.
 - Execução local via Docker Compose; modelo `paraphrase-multilingual-MiniLM-L12-v2` em CPU, baixado na primeira inicialização.
@@ -46,6 +48,8 @@ Recomendação semântica por oferta (curso + campus + nível), não por palavra
 - Por ser protótipo acadêmico, não deve se apresentar como canal oficial do IFS nem reproduzir a identidade institucional como se fosse oficial.
 
 ## Evidence on Hand
+
+- O catálogo concentra cursos Realista/Investigativo (8 perfis com código idêntico RI), o que limita a capacidade do RIASEC sozinho de diferenciar cursos; motivo da escolha pelo modo híbrido.
 
 - Dados reais do catálogo de ofertas em `data/cursos_ifs.json`.
 - Indicadores da gestão vêm apenas de consultas reais registradas no SQLite; começam em zero.
