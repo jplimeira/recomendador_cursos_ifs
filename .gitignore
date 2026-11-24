@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Segredos e configuração local
+.env
+.env.*
+!.env.example
+
+# Dados gerados em execução (bancos SQLite com dados de alunos)
+runtime/
+*.sqlite
+*.sqlite3
+*.db
+
+# Ferramentas de agentes/IDE
+.claude/
+.cursor/
+.agents/
+.vscode/
+.idea/
+.impeccable/config.local.json
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
